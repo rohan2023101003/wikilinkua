@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}WikiLinkua — learn through what you already know{% endblock %}
+
+{% block page_content %}
+<div class="container">
+
+  <div class="wl-home-hero">
+    <h1 class="mb-2">WikiLinkua</h1>
+    <p class="lead mb-0">
+      Learn a new language through the languages you <em>already</em> know.
+      Powered by Wikidata Lexemes &mdash; cognates, loanwords, phonetic
+      look-alikes and the cross-language traps in between.
+    </p>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="card wl-mode-card box-shadow border-primary">
+        <div class="card-header bg-primary text-white">
+          <h4 class="my-0 font-weight-normal">✨ WikiLinkua — Bridge Words</h4>
+        </div>
+        <div class="card-body">
+          <p>
+            Pick the languages you speak and the one you want to learn.
+            WikiLinkua finds the words whose meanings cross over and turns them
+            into a flashcard quiz with pronunciation audio &mdash; so you start
+            from vocabulary you already almost know.
+          </p>
+          <a href="{{ url_for('main.wikilinkua') }}" class="btn btn-primary">
+            Find my bridge words
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="card wl-mode-card box-shadow" style="border-color:#b3541e;">
+        <div class="card-header text-white" style="background:#b3541e;">
+          <h4 class="my-0 font-weight-normal">⚠ True or False Friend?</h4>
+        </div>
+        <div class="card-body">
+          <p>
+            A quiz on cognates vs <em>faux amis</em>. Two similar-looking words
+            from two languages &mdash; do they mean the same thing, or not?
+            Mixes famous false-friend pairs, Wikidata P5976 statements, and
+            computed true friends.
+          </p>
+          <a href="{{ url_for('main.false_friends') }}" class="btn text-white"
+             style="background:#b3541e;">
+            Start the quiz
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-muted small mt-3">
+    More learning features (daily lessons, spaced repetition, progress &amp;
+    streaks) are on the way &mdash; see the project proposal.
+  </p>
+
+</div>
+{% endblock %}

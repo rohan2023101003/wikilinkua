@@ -1,0 +1,1090 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{super()}}
+<style>
+  .ff-hero {
+      background: linear-gradient(135deg, #b3541e 0%, #d97a3c 100%);
+      color: white;
+      padding: 25px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+  }
+  .ff-card {
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      user-select: none;
+  }
+  .ff-pair {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+  }
+  .ff-word {
+      text-align: center;
+      min-width: 180px;
+  }
+  .ff-word .lang-tag {
+      font-size: 0.85rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+  }
+  .ff-word .lemma {
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: #222;
+  }
+  .ff-word .ipa {
+      font-size: 1rem;
+      color: #888;
+      margin-top: 6px;
+  }
+  .ff-vs {
+      font-size: 1.4rem;
+      color: #b3541e;
+      font-weight: 700;
+  }
+  .ff-source-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+  }
+  .ff-src-p5976 { background: #e3f2fd; color: #0d47a1; }
+  .ff-src-curated { background: #fff3e0; color: #b3541e; }
+  .ff-src-bridge { background: #e8f5e9; color: #1b5e20; }
+  .ff-reveal {
+      width: 100%;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px dashed #ccc;
+  }
+  .ff-reveal-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      flex-wrap: wrap;
+  }
+  .ff-meaning-block {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 6px;
+  }
+  .ff-meaning-block strong { color: #b3541e; }
+  .ff-stat-card {
+      flex: 1;
+      min-width: 160px;
+      text-align: center;
+      padding: 12px;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+  }
+  .ff-stat-card .num { font-size: 2rem; font-weight: 700; }
+  .ff-stat-card .lbl { font-size: 0.85rem; color: #666; }
+  .ff-progress-dots {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+  }
+  .ff-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #ddd;
+  }
+  .ff-dot.correct { background: #28a745; }
+  .ff-dot.wrong { background: #dc3545; }
+  .ff-dot.current {
+      background: #fff;
+      border: 2px solid #b3541e;
+  }
+  .ff-known-checkbox-group {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+  }
+  .ff-loading-spinner {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #b3541e;
+      border-radius: 50%;
+      animation: ff-spin 1s linear infinite;
+      vertical-align: middle;
+  }
+  @keyframes ff-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+  }
+</style>
+{% endblock %}
+
+
+{% block scripts %}
+{{super()}}
+
+<script>
+  // ----------------------------------------------------------------------
+  // True or False Friend? — quiz on cognates vs faux-amis.
+  //
+  // Three data sources, in priority order:
+  //   1) curated  — hand-vetted famous false-friend pairs (highest signal)
+  //   2) P5976    — Wikidata "false friend" sense statements (sparse)
+  //   3) bridge   — true friends, computed from P5137 shared concepts
+  //                 filtered to lemmas with high orthographic similarity
+  //                 (so they look confusing and the quiz isn't trivial)
+  // ----------------------------------------------------------------------
+
+  const FF_LANGUAGES = [
+    { qid: 'Q1860',  code: 'en',  name: 'English' },
+    { qid: 'Q1321',  code: 'es',  name: 'Spanish' },
+    { qid: 'Q150',   code: 'fr',  name: 'French' },
+    { qid: 'Q188',   code: 'de',  name: 'German' },
+    { qid: 'Q652',   code: 'it',  name: 'Italian' },
+    { qid: 'Q5146',  code: 'pt',  name: 'Portuguese' },
+    { qid: 'Q9035',  code: 'da',  name: 'Danish' },
+    { qid: 'Q9027',  code: 'sv',  name: 'Swedish' },
+    { qid: 'Q9043',  code: 'no',  name: 'Norwegian' },
+    { qid: 'Q9168',  code: 'fa',  name: 'Persian' },
+    { qid: 'Q13955', code: 'ar',  name: 'Arabic' },
+    { qid: 'Q1568',  code: 'hi',  name: 'Hindi' },
+    { qid: 'Q1617',  code: 'ur',  name: 'Urdu' },
+    { qid: 'Q58635', code: 'pa',  name: 'Punjabi' },
+    { qid: 'Q5287',  code: 'ja',  name: 'Japanese' },
+    { qid: 'Q7737',  code: 'ru',  name: 'Russian' },
+    { qid: 'Q8798',  code: 'uk',  name: 'Ukrainian' },
+    { qid: 'Q809',   code: 'pl',  name: 'Polish' },
+    { qid: 'Q9056',  code: 'cs',  name: 'Czech' },
+    { qid: 'Q9240',  code: 'id',  name: 'Indonesian' },
+    { qid: 'Q9237',  code: 'ms',  name: 'Malay' },
+    { qid: 'Q256',   code: 'tr',  name: 'Turkish' },
+    { qid: 'Q143',   code: 'eo',  name: 'Esperanto' },
+    { qid: 'Q397',   code: 'la',  name: 'Latin' },
+    { qid: 'Q1412',  code: 'yi',  name: 'Yiddish' },
+  ];
+
+  // ----- Curated famous false friends ---------------------------------
+  // Each entry: known→target word pair, with meanings on each side.
+  // 'pair' is unordered — we look up by sorted-code-pair string.
+  const FF_CURATED = [
+    // EN <-> ES
+    { langs: ['en','es'], a: 'embarrassed',   b: 'embarazada',
+      meaningA: 'feeling shame or self-consciousness',
+      meaningB: 'pregnant',
+      note: 'A famous trap — the original sin of Spanish learners.' },
+    { langs: ['en','es'], a: 'library',       b: 'librería',
+      meaningA: 'place that lends books',
+      meaningB: 'bookstore (the library is *biblioteca*)' },
+    { langs: ['en','es'], a: 'exit',          b: 'éxito',
+      meaningA: 'a way out',
+      meaningB: 'success' },
+    { langs: ['en','es'], a: 'actually',      b: 'actualmente',
+      meaningA: 'in fact, really',
+      meaningB: 'currently, at present' },
+    { langs: ['en','es'], a: 'assist',        b: 'asistir',
+      meaningA: 'help someone',
+      meaningB: 'to attend (a meeting, class)' },
+    { langs: ['en','es'], a: 'carpet',        b: 'carpeta',
+      meaningA: 'rug, floor covering',
+      meaningB: 'folder' },
+    { langs: ['en','es'], a: 'constipated',   b: 'constipado',
+      meaningA: 'unable to defecate',
+      meaningB: 'having a cold' },
+    { langs: ['en','es'], a: 'introduce',     b: 'introducir',
+      meaningA: 'to make someone known',
+      meaningB: 'to insert / put inside' },
+    { langs: ['en','es'], a: 'molest',        b: 'molestar',
+      meaningA: 'to abuse sexually',
+      meaningB: 'to bother, annoy' },
+    { langs: ['en','es'], a: 'realize',       b: 'realizar',
+      meaningA: 'to become aware of',
+      meaningB: 'to carry out, perform' },
+    { langs: ['en','es'], a: 'rope',          b: 'ropa',
+      meaningA: 'thick cord',
+      meaningB: 'clothes, clothing' },
+    { langs: ['en','es'], a: 'soap',          b: 'sopa',
+      meaningA: 'cleaning substance',
+      meaningB: 'soup' },
+    { langs: ['en','es'], a: 'sympathy',      b: 'simpatía',
+      meaningA: 'compassion for sorrow',
+      meaningB: 'friendliness, charm' },
+    { langs: ['en','es'], a: 'sensible',      b: 'sensible',
+      meaningA: 'reasonable, practical',
+      meaningB: 'sensitive (emotional)' },
+    { langs: ['en','es'], a: 'fabric',        b: 'fábrica',
+      meaningA: 'cloth, textile',
+      meaningB: 'factory' },
+
+    // EN <-> DE
+    { langs: ['en','de'], a: 'gift',          b: 'Gift',
+      meaningA: 'a present',
+      meaningB: 'poison',
+      note: 'A famously dangerous false friend.' },
+    { langs: ['en','de'], a: 'bald',          b: 'bald',
+      meaningA: 'hairless',
+      meaningB: 'soon' },
+    { langs: ['en','de'], a: 'become',        b: 'bekommen',
+      meaningA: 'to come to be',
+      meaningB: 'to receive, get' },
+    { langs: ['en','de'], a: 'chef',          b: 'Chef',
+      meaningA: 'cook',
+      meaningB: 'boss, head' },
+    { langs: ['en','de'], a: 'handy',         b: 'Handy',
+      meaningA: 'convenient',
+      meaningB: 'mobile phone (false anglicism)' },
+    { langs: ['en','de'], a: 'rat',           b: 'Rat',
+      meaningA: 'rodent',
+      meaningB: 'advice, council' },
+    { langs: ['en','de'], a: 'billion',       b: 'Billion',
+      meaningA: '10⁹ (one thousand million)',
+      meaningB: '10¹² (one million million)' },
+    { langs: ['en','de'], a: 'sympathetic',   b: 'sympathisch',
+      meaningA: 'showing pity',
+      meaningB: 'likeable' },
+
+    // EN <-> FR
+    { langs: ['en','fr'], a: 'actually',      b: 'actuellement',
+      meaningA: 'in fact, really',
+      meaningB: 'currently, at present' },
+    { langs: ['en','fr'], a: 'assist',        b: 'assister',
+      meaningA: 'help',
+      meaningB: 'to attend (an event)' },
+    { langs: ['en','fr'], a: 'attend',        b: 'attendre',
+      meaningA: 'to go to (an event)',
+      meaningB: 'to wait for' },
+    { langs: ['en','fr'], a: 'eventually',    b: 'éventuellement',
+      meaningA: 'in the end, at last',
+      meaningB: 'possibly, perhaps' },
+    { langs: ['en','fr'], a: 'library',       b: 'librairie',
+      meaningA: 'place that lends books',
+      meaningB: 'bookstore' },
+    { langs: ['en','fr'], a: 'preservative',  b: 'préservatif',
+      meaningA: 'food additive',
+      meaningB: 'condom',
+      note: 'Asking for "préservatifs" at a French bakery is awkward.' },
+    { langs: ['en','fr'], a: 'sensible',      b: 'sensible',
+      meaningA: 'reasonable',
+      meaningB: 'sensitive, easily moved' },
+    { langs: ['en','fr'], a: 'pain',          b: 'pain',
+      meaningA: 'physical suffering',
+      meaningB: 'bread' },
+    { langs: ['en','fr'], a: 'coin',          b: 'coin',
+      meaningA: 'metal money',
+      meaningB: 'corner' },
+    { langs: ['en','fr'], a: 'route',         b: 'route',
+      meaningA: 'a path/way (informal)',
+      meaningB: 'road, highway' },
+
+    // EN <-> IT
+    { langs: ['en','it'], a: 'camera',        b: 'camera',
+      meaningA: 'photo device',
+      meaningB: 'room (camera is *macchina fotografica*)' },
+    { langs: ['en','it'], a: 'factory',       b: 'fattoria',
+      meaningA: 'manufacturing plant',
+      meaningB: 'farm' },
+    { langs: ['en','it'], a: 'pretend',       b: 'pretendere',
+      meaningA: 'to fake',
+      meaningB: 'to demand, claim' },
+    { langs: ['en','it'], a: 'parents',       b: 'parenti',
+      meaningA: 'mother and father',
+      meaningB: 'relatives in general' },
+    { langs: ['en','it'], a: 'morbid',        b: 'morbido',
+      meaningA: 'unhealthily preoccupied',
+      meaningB: 'soft' },
+
+    // EN <-> PT
+    { langs: ['en','pt'], a: 'pasta',         b: 'pasta',
+      meaningA: 'Italian noodles',
+      meaningB: 'folder, briefcase' },
+    { langs: ['en','pt'], a: 'push',          b: 'puxar',
+      meaningA: 'press away from you',
+      meaningB: 'to pull (toward you)',
+      note: 'On Portuguese doors, "puxe" means PULL — opposite of push!' },
+    { langs: ['en','pt'], a: 'parents',       b: 'parentes',
+      meaningA: 'mother and father',
+      meaningB: 'relatives' },
+    { langs: ['en','pt'], a: 'data',          b: 'data',
+      meaningA: 'information',
+      meaningB: 'a date (calendar)' },
+
+    // ES <-> IT (extremely tricky — same-Romance trap)
+    { langs: ['es','it'], a: 'burro',         b: 'burro',
+      meaningA: 'donkey',
+      meaningB: 'butter',
+      note: 'Order *burro con pan* in Italy → butter with bread; in Spain → donkey with bread.' },
+    { langs: ['es','it'], a: 'aceite',        b: 'aceto',
+      meaningA: 'oil',
+      meaningB: 'vinegar' },
+    { langs: ['es','it'], a: 'subir',         b: 'subire',
+      meaningA: 'to go up',
+      meaningB: 'to undergo, suffer' },
+    { langs: ['es','it'], a: 'embarazada',    b: 'imbarazzata',
+      meaningA: 'pregnant',
+      meaningB: 'embarrassed' },
+    { langs: ['es','it'], a: 'salir',         b: 'salire',
+      meaningA: 'to go out',
+      meaningB: 'to climb up' },
+
+    // ES <-> PT
+    { langs: ['es','pt'], a: 'exquisito',     b: 'esquisito',
+      meaningA: 'refined, exquisite',
+      meaningB: 'weird, strange' },
+    { langs: ['es','pt'], a: 'embarazada',    b: 'embaraçada',
+      meaningA: 'pregnant',
+      meaningB: 'embarrassed (mostly)' },
+    { langs: ['es','pt'], a: 'oficina',       b: 'oficina',
+      meaningA: 'office',
+      meaningB: 'workshop, garage' },
+    { langs: ['es','pt'], a: 'rojo',          b: 'roxo',
+      meaningA: 'red',
+      meaningB: 'purple' },
+
+    // FR <-> IT
+    { langs: ['fr','it'], a: 'magasin',       b: 'magazzino',
+      meaningA: 'shop, store',
+      meaningB: 'warehouse, storeroom' },
+
+    // DE <-> NL
+    { langs: ['de','sv'], a: 'rolig',         b: 'rolig',
+      meaningA: 'calm (DA/NO)',
+      meaningB: 'fun, funny (SV)' },
+
+    // SV <-> DA  (well-supported by P5976 too)
+    { langs: ['sv','da'], a: 'rolig',         b: 'rolig',
+      meaningA: 'fun, funny',
+      meaningB: 'calm, quiet' },
+    { langs: ['sv','da'], a: 'frokost',       b: 'frokost',
+      meaningA: '(SV: frukost) breakfast',
+      meaningB: 'lunch' },
+
+    // RU <-> PL
+    { langs: ['ru','pl'], a: 'запомнить',     b: 'zapomnieć',
+      meaningA: 'to remember',
+      meaningB: 'to forget',
+      note: 'A spectacular Slavic mirror-image false friend.' },
+    { langs: ['ru','cs'], a: 'красный',       b: 'krásný',
+      meaningA: 'red',
+      meaningB: 'beautiful' },
+
+    // HI <-> UR (often near-identical; meaning drift in formal register)
+    { langs: ['hi','ur'], a: 'अच्छा',          b: 'اچھا',
+      meaningA: 'good (informal exclamation: I see)',
+      meaningB: 'good (same root, slight register drift)',
+      note: 'Often considered the same word — register & script differ.' },
+
+    // EN <-> JA (false anglicisms / wasei-eigo)
+    { langs: ['en','ja'], a: 'mansion',       b: 'マンション (manshon)',
+      meaningA: 'large luxurious house',
+      meaningB: 'an ordinary apartment building' },
+    { langs: ['en','ja'], a: 'smart',         b: 'スマート (sumāto)',
+      meaningA: 'intelligent',
+      meaningB: 'slim, slender' },
+    { langs: ['en','ja'], a: 'cunning',       b: 'カンニング (kanningu)',
+      meaningA: 'crafty, sly',
+      meaningB: 'cheating on a test' },
+  ];
+
+  const FF_INNER_LIMIT      = 1500; // bridge query inner cap
+  const FF_BRIDGE_LIMIT     = 400;  // bridge query outer cap
+  const FF_LEMMA_SIM_MIN    = 0.55; // min Levenshtein-norm similarity for "looks confusing"
+  const FF_QUESTIONS        = 10;
+  const FF_QUERY_TIMEOUT    = 60000;
+
+  let ffPairs = [];   // unified pool {kind:'true'|'false', source, ...}
+  let ffQuiz  = [];
+  let ffIndex = 0;
+  let ffScore = 0;
+  let ffResults = [];
+
+  function ffInitSelectors() {
+    const knownDiv  = document.getElementById('ff-known-langs');
+    const targetSel = document.getElementById('ff-target-lang');
+    knownDiv.innerHTML = '';
+    targetSel.innerHTML = '';
+    FF_LANGUAGES.forEach(lang => {
+      const id = 'ff-known-' + lang.qid;
+      const wrap = document.createElement('div');
+      wrap.className = 'form-check';
+      wrap.innerHTML =
+        '<input class="form-check-input ff-known-cb" type="checkbox" '
+        + 'value="' + lang.qid + '" data-code="' + lang.code + '" id="' + id + '">'
+        + '<label class="form-check-label" for="' + id + '">'
+        + lang.name + ' <small class="text-muted">(' + lang.code + ')</small></label>';
+      knownDiv.appendChild(wrap);
+
+      const opt = document.createElement('option');
+      opt.value = lang.qid;
+      opt.dataset.code = lang.code;
+      opt.textContent = lang.name + ' (' + lang.code + ')';
+      targetSel.appendChild(opt);
+    });
+
+    // Default: English known → Spanish target (densest curated coverage)
+    const cb = document.querySelector('.ff-known-cb[value="Q1860"]');
+    if (cb) cb.checked = true;
+    targetSel.value = 'Q1321';
+
+    // Presets
+    const presets = [
+      { label: 'English → Spanish (classic)',
+        known: ['Q1860'], target: 'Q1321' },
+      { label: 'English → German (Gift!)',
+        known: ['Q1860'], target: 'Q188' },
+      { label: 'English → French (préservatif)',
+        known: ['Q1860'], target: 'Q150' },
+      { label: 'Spanish → Italian (burro)',
+        known: ['Q1321'], target: 'Q652' },
+      { label: 'Russian → Polish (запомнить)',
+        known: ['Q7737'], target: 'Q809' },
+    ];
+    const presetDiv = document.getElementById('ff-presets');
+    presetDiv.innerHTML = '';
+    presets.forEach(p => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-outline-warning btn-sm m-1';
+      btn.textContent = p.label;
+      btn.onclick = () => {
+        document.querySelectorAll('.ff-known-cb').forEach(c => {
+          c.checked = p.known.indexOf(c.value) !== -1;
+        });
+        document.getElementById('ff-target-lang').value = p.target;
+        ffStartQuiz();
+      };
+      presetDiv.appendChild(btn);
+    });
+  }
+
+  function ffCollectKnown() {
+    const cbs = document.querySelectorAll('.ff-known-cb:checked');
+    return Array.from(cbs).map(cb => ({
+      qid: cb.value,
+      code: cb.dataset.code,
+    }));
+  }
+
+  function ffStartQuiz() {
+    const knownLangs = ffCollectKnown();
+    const targetSel  = document.getElementById('ff-target-lang');
+    const targetQid  = targetSel.value;
+    const targetCode = targetSel.options[targetSel.selectedIndex].dataset.code;
+    const targetName = targetSel.options[targetSel.selectedIndex].textContent;
+
+    if (knownLangs.length === 0) {
+      alert('Please select at least one language you know.');
+      return;
+    }
+    if (knownLangs.some(l => l.qid === targetQid)) {
+      alert('Target language must differ from your known language(s).');
+      return;
+    }
+
+    document.getElementById('ff-setup').classList.add('d-none');
+    document.getElementById('ff-loading').classList.remove('d-none');
+    ffSetLoading('Step 1/3 — gathering curated false-friend pairs…');
+
+    const curated = ffGatherCurated(knownLangs, targetCode);
+
+    ffSetLoading('Step 2/3 — querying Wikidata for P5976 sense statements…');
+    ffRunP5976Query(knownLangs, targetQid).then(p5976 => {
+      ffSetLoading('Step 3/3 — finding true friends via shared concepts (P5137)…');
+      return ffRunBridgeQuery(knownLangs, targetQid).then(bridges => {
+        const trueFriends = ffFilterTrueFriends(bridges);
+        ffPairs = ffMixPool(curated, p5976, trueFriends);
+
+        if (ffPairs.length < 2) {
+          document.getElementById('ff-loading').classList.add('d-none');
+          document.getElementById('ff-setup').classList.remove('d-none');
+          alert('Sorry, we couldn\'t build a quiz — too little data for this'
+              + ' language pair on Wikidata. Try a more common pair (e.g.'
+              + ' English ↔ Spanish, or English ↔ German).');
+          return;
+        }
+
+        // Build the actual quiz
+        ffQuiz = ffShuffle(ffPairs.slice()).slice(
+          0, Math.min(FF_QUESTIONS, ffPairs.length));
+        ffIndex = 0;
+        ffScore = 0;
+        ffResults = [];
+        document.getElementById('ff-loading').classList.add('d-none');
+        document.getElementById('ff-quiz').classList.remove('d-none');
+        document.getElementById('ff-quiz-result').classList.add('d-none');
+        document.getElementById('ff-pool-summary').textContent =
+          ffPairs.length + ' total pairs in pool — '
+          + curated.length + ' curated, '
+          + p5976.length + ' from P5976, '
+          + trueFriends.length + ' true-friend bridges.';
+        ffShowQuestion();
+      });
+    }).catch(err => {
+      console.error(err);
+      document.getElementById('ff-loading').classList.add('d-none');
+      document.getElementById('ff-setup').classList.remove('d-none');
+      alert('Failed to load data: ' + err.message);
+    });
+  }
+
+  function ffSetLoading(msg) {
+    document.getElementById('ff-loading-detail').textContent = msg;
+  }
+
+  // ----- Source 1: curated -----
+  function ffGatherCurated(knownLangs, targetCode) {
+    const knownCodes = knownLangs.map(l => l.code);
+    const out = [];
+    FF_CURATED.forEach(c => {
+      const [la, lb] = c.langs;
+      // Match either direction: known-target or target-known
+      let knownSide, knownLemma, knownMeaning, targetLemma, targetMeaning, knownCode;
+      if (knownCodes.indexOf(la) !== -1 && lb === targetCode) {
+        knownLemma = c.a; targetLemma = c.b;
+        knownMeaning = c.meaningA; targetMeaning = c.meaningB;
+        knownCode = la;
+      } else if (knownCodes.indexOf(lb) !== -1 && la === targetCode) {
+        knownLemma = c.b; targetLemma = c.a;
+        knownMeaning = c.meaningB; targetMeaning = c.meaningA;
+        knownCode = lb;
+      } else {
+        return;
+      }
+      out.push({
+        kind: 'false',
+        source: 'curated',
+        knownLemma: knownLemma,
+        knownCode: knownCode,
+        knownMeaning: knownMeaning,
+        targetLemma: targetLemma,
+        targetCode: targetCode,
+        targetMeaning: targetMeaning,
+        note: c.note || '',
+      });
+    });
+    return out;
+  }
+
+  // ----- Source 2: Wikidata P5976 -----
+  function ffBuildP5976Sparql(knownLangQids, targetQid) {
+    const knownValues = knownLangQids.map(q => 'wd:' + q).join(' ');
+    return `
+      # tool: Ordia / FalseFriends (P5976)
+      SELECT
+        ?lex1 (SAMPLE(?lemma1_) AS ?lemma1) ?lang1
+        ?lex2 (SAMPLE(?lemma2_) AS ?lemma2)
+        (SAMPLE(?gloss1_) AS ?gloss1)
+        (SAMPLE(?gloss2_) AS ?gloss2)
+      WHERE {
+        { ?s1 wdt:P5976 ?s2 } UNION { ?s2 wdt:P5976 ?s1 }
+        ?lex1 ontolex:sense ?s1 ;
+              wikibase:lemma ?lemma1_ ;
+              dct:language ?lang1 .
+        ?lex2 ontolex:sense ?s2 ;
+              wikibase:lemma ?lemma2_ ;
+              dct:language wd:${targetQid} .
+        VALUES ?lang1 { ${knownValues} }
+        OPTIONAL { ?s1 skos:definition ?gloss1_ . FILTER(LANG(?gloss1_) = "en") }
+        OPTIONAL { ?s2 skos:definition ?gloss2_ . FILTER(LANG(?gloss2_) = "en") }
+      }
+      GROUP BY ?lex1 ?lex2 ?lang1
+      LIMIT 100
+    `;
+  }
+
+  async function ffSparqlFetch(sparql) {
+    const url = SPARQL_ENDPOINT_URL + '?query=' + encodeURIComponent(sparql);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), FF_QUERY_TIMEOUT);
+    let response;
+    try {
+      response = await fetch(url, {
+        headers: { 'Accept': 'application/sparql-results+json' },
+        signal: ctrl.signal,
+      });
+    } finally { clearTimeout(t); }
+    if (!response.ok) throw new Error('SPARQL HTTP ' + response.status);
+    return response.json();
+  }
+
+  async function ffRunP5976Query(knownLangs, targetQid) {
+    const data = await ffSparqlFetch(
+      ffBuildP5976Sparql(knownLangs.map(l => l.qid), targetQid));
+    const langCode = qid => {
+      const lang = FF_LANGUAGES.find(l => l.qid === qid);
+      return lang ? lang.code : '';
+    };
+    return data.results.bindings.map(row => ({
+      kind: 'false',
+      source: 'p5976',
+      knownLexId: row.lex1.value.split('/').pop(),
+      knownLemma: row.lemma1.value,
+      knownCode:  langCode(row.lang1.value.split('/').pop()),
+      knownMeaning: row.gloss1 ? row.gloss1.value : '',
+      targetLexId: row.lex2.value.split('/').pop(),
+      targetLemma: row.lemma2.value,
+      targetCode:  '', // filled by caller
+      targetMeaning: row.gloss2 ? row.gloss2.value : '',
+      note: '',
+    }));
+  }
+
+  // ----- Source 3: bridge words → true friends -----
+  function ffBuildBridgeSparql(knownLangQids, targetQid, knownCodes) {
+    const knownValues = knownLangQids.map(q => 'wd:' + q).join(' ');
+    const knownLemmaLangFilter = knownCodes
+      .map(c => 'LANG(?knownLemma_) = "' + c + '"')
+      .join(' || ');
+    return `
+      # tool: Ordia / FalseFriends (P5137 bridges)
+      SELECT
+        ?targetLex
+        (SAMPLE(?targetLemma_) AS ?targetLemma)
+        ?knownLex
+        (SAMPLE(?knownLemma_) AS ?knownLemma)
+        (SAMPLE(?knownLangCode_) AS ?knownLangCode)
+        (SAMPLE(?conceptLabel_) AS ?conceptLabel)
+        (SAMPLE(?gloss1_) AS ?gloss1)
+        (SAMPLE(?gloss2_) AS ?gloss2)
+      WITH {
+        SELECT DISTINCT ?targetLex ?knownLex ?concept WHERE {
+          ?targetLex dct:language wd:${targetQid} ;
+                     ontolex:sense / wdt:P5137 ?concept .
+          ?knownLex  dct:language ?knownLang ;
+                     ontolex:sense / wdt:P5137 ?concept .
+          VALUES ?knownLang { ${knownValues} }
+        }
+        LIMIT ${FF_INNER_LIMIT}
+      } AS %p
+      WHERE {
+        INCLUDE %p
+        ?targetLex wikibase:lemma ?targetLemma_ .
+        ?knownLex  wikibase:lemma ?knownLemma_ .
+        BIND(LANG(?knownLemma_) AS ?knownLangCode_)
+        FILTER(${knownLemmaLangFilter})
+        OPTIONAL {
+          ?targetLex ontolex:sense ?ts . ?ts wdt:P5137 ?concept .
+          ?ts skos:definition ?gloss2_ . FILTER(LANG(?gloss2_) = "en")
+        }
+        OPTIONAL {
+          ?knownLex ontolex:sense ?ks . ?ks wdt:P5137 ?concept .
+          ?ks skos:definition ?gloss1_ . FILTER(LANG(?gloss1_) = "en")
+        }
+        SERVICE wikibase:label {
+          bd:serviceParam wikibase:language "en" .
+          ?concept rdfs:label ?conceptLabel_ .
+        }
+      }
+      GROUP BY ?targetLex ?knownLex
+      LIMIT ${FF_BRIDGE_LIMIT}
+    `;
+  }
+
+  async function ffRunBridgeQuery(knownLangs, targetQid) {
+    const data = await ffSparqlFetch(ffBuildBridgeSparql(
+      knownLangs.map(l => l.qid),
+      targetQid,
+      knownLangs.map(l => l.code)));
+    return data.results.bindings.map(row => ({
+      kind: 'true',
+      source: 'bridge',
+      knownLexId: row.knownLex.value.split('/').pop(),
+      knownLemma: row.knownLemma.value,
+      knownCode:  row.knownLangCode ? row.knownLangCode.value : '',
+      knownMeaning: row.gloss1 ? row.gloss1.value : (
+        row.conceptLabel ? row.conceptLabel.value : ''),
+      targetLexId: row.targetLex.value.split('/').pop(),
+      targetLemma: row.targetLemma.value,
+      targetCode:  '',
+      targetMeaning: row.gloss2 ? row.gloss2.value : (
+        row.conceptLabel ? row.conceptLabel.value : ''),
+      conceptLabel: row.conceptLabel ? row.conceptLabel.value : '',
+      note: '',
+    }));
+  }
+
+  // Filter bridges to only "confusing-looking" true friends.
+  function ffFilterTrueFriends(bridges) {
+    return bridges.filter(b => {
+      const sim = ffLemmaSimilarity(b.knownLemma, b.targetLemma);
+      return sim !== null && sim >= FF_LEMMA_SIM_MIN;
+    });
+  }
+
+  // ----- Lemma similarity (Levenshtein, normalised) -----
+  function ffLemmaSimilarity(a, b) {
+    if (!a || !b) return null;
+    const sa = a.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
+    const sb = b.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
+    if (!sa || !sb) return null;
+    const d = ffLevenshtein(sa, sb);
+    const m = Math.max(sa.length, sb.length);
+    return m === 0 ? null : 1 - d / m;
+  }
+  function ffLevenshtein(a, b) {
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    const m = a.length, n = b.length;
+    let prev = new Array(n + 1), curr = new Array(n + 1);
+    for (let j = 0; j <= n; j++) prev[j] = j;
+    for (let i = 1; i <= m; i++) {
+      curr[0] = i;
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+      }
+      [prev, curr] = [curr, prev];
+    }
+    return prev[n];
+  }
+
+  function ffShuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // Mix three sources into a balanced pool.  Aim ~50/50 true/false ratio
+  // when possible; otherwise use whatever we have.
+  function ffMixPool(curated, p5976, bridges) {
+    // De-dup by (knownLemma|targetLemma) lowercased.
+    const seen = new Set();
+    const dedup = arr => arr.filter(p => {
+      const k = (p.knownLemma + '|' + p.targetLemma).toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+    const falses = dedup(curated.concat(p5976));
+    const trues  = dedup(bridges);
+    const half = Math.floor(FF_QUESTIONS / 2);
+    const wantFalse = Math.min(half + 1, falses.length);
+    const wantTrue  = Math.min(FF_QUESTIONS - wantFalse, trues.length);
+    return ffShuffle(falses.slice(0, wantFalse))
+      .concat(ffShuffle(trues.slice(0, wantTrue)));
+  }
+
+  // ----- Quiz UI -----
+  function ffShowQuestion() {
+    if (ffIndex >= ffQuiz.length) { ffEndQuiz(); return; }
+    const q = ffQuiz[ffIndex];
+
+    document.getElementById('ff-current').textContent = ffIndex + 1;
+    document.getElementById('ff-total').textContent   = ffQuiz.length;
+
+    document.getElementById('ff-known-tag').textContent =
+      'You know — ' + (q.knownCode || '?');
+    document.getElementById('ff-target-tag').textContent =
+      'You learn — ' + (q.targetCode || '?');
+    document.getElementById('ff-known-lemma').textContent  = q.knownLemma;
+    document.getElementById('ff-target-lemma').textContent = q.targetLemma;
+
+    // Reveal section starts hidden
+    document.getElementById('ff-reveal').classList.add('d-none');
+    document.getElementById('ff-actions-front').classList.remove('d-none');
+    document.getElementById('ff-actions-next').classList.add('d-none');
+
+    ffRenderDots();
+  }
+
+  function ffRenderDots() {
+    const dots = document.getElementById('ff-dots');
+    dots.innerHTML = '';
+    for (let i = 0; i < ffQuiz.length; i++) {
+      const d = document.createElement('span');
+      d.className = 'ff-dot';
+      const r = ffResults[i];
+      if (r === true) d.classList.add('correct');
+      else if (r === false) d.classList.add('wrong');
+      else if (i === ffIndex) d.classList.add('current');
+      dots.appendChild(d);
+    }
+  }
+
+  function ffAnswer(userSaysTrue) {
+    const q = ffQuiz[ffIndex];
+    const correct = userSaysTrue === (q.kind === 'true');
+    if (correct) ffScore += 1;
+    ffResults[ffIndex] = correct;
+
+    // Reveal
+    document.getElementById('ff-reveal').classList.remove('d-none');
+    document.getElementById('ff-actions-front').classList.add('d-none');
+    document.getElementById('ff-actions-next').classList.remove('d-none');
+
+    document.getElementById('ff-verdict').innerHTML = correct
+      ? '<span class="text-success"><strong>✔ Correct!</strong></span>'
+      : '<span class="text-danger"><strong>✗ Not quite.</strong></span>';
+    document.getElementById('ff-truth').innerHTML = (q.kind === 'true')
+      ? 'These are <strong style="color:#1b5e20">TRUE friends</strong> — same meaning.'
+      : 'These are <strong style="color:#b3541e">Friend or Faux</strong> — they look alike but mean different things.';
+
+    document.getElementById('ff-known-meaning').textContent =
+      q.knownMeaning || '(no gloss available)';
+    document.getElementById('ff-target-meaning').textContent =
+      q.targetMeaning || '(no gloss available)';
+
+    const noteEl = document.getElementById('ff-note');
+    if (q.note) {
+      noteEl.textContent = q.note;
+      noteEl.classList.remove('d-none');
+    } else {
+      noteEl.classList.add('d-none');
+    }
+
+    const srcEl = document.getElementById('ff-source-badge');
+    srcEl.className = 'ff-source-badge';
+    if (q.source === 'curated') {
+      srcEl.classList.add('ff-src-curated');
+      srcEl.textContent = 'curated';
+    } else if (q.source === 'p5976') {
+      srcEl.classList.add('ff-src-p5976');
+      srcEl.textContent = 'Wikidata P5976';
+    } else {
+      srcEl.classList.add('ff-src-bridge');
+      srcEl.textContent = 'P5137 bridge (true friend)';
+    }
+
+    // Lexeme links if we have them
+    const linkSection = document.getElementById('ff-lexeme-links');
+    linkSection.innerHTML = '';
+    if (q.knownLexId) {
+      const a = document.createElement('a');
+      a.href = 'https://www.wikidata.org/wiki/Lexeme:' + q.knownLexId;
+      a.textContent = q.knownLemma + ' →';
+      a.className = 'mr-3';
+      linkSection.appendChild(a);
+    }
+    if (q.targetLexId) {
+      const a = document.createElement('a');
+      a.href = 'https://www.wikidata.org/wiki/Lexeme:' + q.targetLexId;
+      a.textContent = '→ ' + q.targetLemma;
+      linkSection.appendChild(a);
+    }
+
+    ffRenderDots();
+  }
+
+  function ffNextQuestion() {
+    ffIndex += 1;
+    ffShowQuestion();
+  }
+
+  function ffEndQuiz() {
+    document.getElementById('ff-quiz').classList.add('d-none');
+    document.getElementById('ff-quiz-result').classList.remove('d-none');
+    document.getElementById('ff-final-score').textContent = ffScore;
+    document.getElementById('ff-final-total').textContent = ffQuiz.length;
+
+    // Summary rows
+    const tbody = document.getElementById('ff-summary-tbody');
+    tbody.innerHTML = '';
+    ffQuiz.forEach((q, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + (idx + 1) + '</td>' +
+        '<td>' + escapeHtml(q.knownLemma) + ' <small class="text-muted">' + (q.knownCode || '') + '</small></td>' +
+        '<td>' + escapeHtml(q.targetLemma) + ' <small class="text-muted">' + (q.targetCode || '') + '</small></td>' +
+        '<td>' + (q.kind === 'true'
+          ? '<span style="color:#1b5e20">TRUE</span>'
+          : '<span style="color:#b3541e">FALSE</span>') + '</td>' +
+        '<td>' + (ffResults[idx] === true ? '✔'
+                : ffResults[idx] === false ? '✗' : '—') + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s == null ? '' : s;
+    return div.innerHTML;
+  }
+
+  function ffReset() {
+    document.getElementById('ff-quiz').classList.add('d-none');
+    document.getElementById('ff-quiz-result').classList.add('d-none');
+    document.getElementById('ff-loading').classList.add('d-none');
+    document.getElementById('ff-setup').classList.remove('d-none');
+  }
+
+  document.addEventListener('DOMContentLoaded', ffInitSelectors);
+</script>
+{% endblock %}
+
+
+{% block page_content %}
+
+<div class="container mt-4">
+
+  <div class="ff-hero">
+    <h1 class="mb-2">True or False Friend? &mdash; The Quiz</h1>
+    <p class="mb-0">
+      Two words side by side. They look alike. Do they mean the same thing
+      &mdash; or is it a <em>faux ami</em>? Train your eye against the
+      cross-language traps that trip up every learner.
+    </p>
+  </div>
+
+  <!-- ============== SETUP ============== -->
+  <div id="ff-setup" class="card p-4 mb-4">
+
+    <div class="mb-3">
+      <label class="font-weight-bold mb-1">Try a one-click demo</label>
+      <div id="ff-presets"></div>
+    </div>
+
+    <hr>
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="font-weight-bold">Languages I already know</label>
+        <div id="ff-known-langs" class="ff-known-checkbox-group"></div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label for="ff-target-lang" class="font-weight-bold">
+          Language I want to learn
+        </label>
+        <select id="ff-target-lang" class="form-control"></select>
+        <small class="form-text text-muted">
+          Best coverage: EN ↔ ES / DE / FR / IT / PT, ES ↔ IT / PT,
+          SV ↔ DA, RU ↔ PL.
+        </small>
+      </div>
+    </div>
+    <button class="btn btn-warning btn-lg mt-2 text-white"
+            onclick="ffStartQuiz()">
+      Start the quiz
+    </button>
+  </div>
+
+  <!-- ============== LOADING ============== -->
+  <div id="ff-loading" class="card p-4 mb-4 d-none text-center">
+    <div>
+      <span class="ff-loading-spinner"></span>
+      <span class="ml-2">Building your quiz&hellip;</span>
+    </div>
+    <p id="ff-loading-detail" class="text-muted mt-3 mb-0"></p>
+  </div>
+
+  <!-- ============== QUIZ ============== -->
+  <div id="ff-quiz" class="d-none">
+    <div class="d-flex align-items-center mb-3">
+      <div id="ff-dots" class="ff-progress-dots"></div>
+      <div class="ml-auto text-muted small">
+        Question <span id="ff-current">1</span> of
+        <span id="ff-total">10</span>
+      </div>
+    </div>
+
+    <div class="ff-card card border">
+      <div class="ff-pair">
+        <div class="ff-word">
+          <div class="lang-tag" id="ff-known-tag"></div>
+          <div class="lemma" id="ff-known-lemma"></div>
+        </div>
+        <div class="ff-vs">vs</div>
+        <div class="ff-word">
+          <div class="lang-tag" id="ff-target-tag"></div>
+          <div class="lemma" id="ff-target-lemma"></div>
+        </div>
+      </div>
+      <div class="text-muted small text-center">
+        Same meaning, or different meaning?
+      </div>
+
+      <div class="ff-reveal d-none" id="ff-reveal">
+        <div class="text-center mb-2">
+          <span id="ff-verdict"></span>
+          &nbsp;<span id="ff-source-badge" class="ff-source-badge"></span>
+        </div>
+        <div class="text-center mb-3" id="ff-truth"></div>
+        <div class="ff-reveal-row">
+          <div class="ff-meaning-block">
+            <strong id="ff-known-tag-r">Word 1</strong>
+            <div id="ff-known-meaning"></div>
+          </div>
+          <div class="ff-meaning-block">
+            <strong id="ff-target-tag-r">Word 2</strong>
+            <div id="ff-target-meaning"></div>
+          </div>
+        </div>
+        <div class="text-center mt-3 text-muted small">
+          <em id="ff-note"></em>
+        </div>
+        <div class="text-center mt-2 small" id="ff-lexeme-links"></div>
+      </div>
+    </div>
+
+    <div id="ff-actions-front" class="text-center mt-3">
+      <button class="btn btn-success mx-2" onclick="ffAnswer(true)">
+        ✓ TRUE friend (same meaning)
+      </button>
+      <button class="btn btn-danger mx-2" onclick="ffAnswer(false)">
+        ✗ FALSE friend (different meaning)
+      </button>
+    </div>
+    <div id="ff-actions-next" class="text-center mt-3 d-none">
+      <button class="btn btn-primary" onclick="ffNextQuestion()">
+        Next question →
+      </button>
+    </div>
+  </div>
+
+  <!-- ============== RESULT ============== -->
+  <div id="ff-quiz-result" class="d-none">
+    <div class="alert alert-info">
+      You scored <strong><span id="ff-final-score"></span></strong> out of
+      <strong><span id="ff-final-total"></span></strong>.
+    </div>
+    <p class="text-muted small">
+      <span id="ff-pool-summary"></span>
+    </p>
+    <h4 class="mt-3">Summary</h4>
+    <table class="table table-sm table-striped">
+      <thead>
+        <tr><th>#</th><th>Word 1</th><th>Word 2</th>
+            <th>Truth</th><th>Result</th></tr>
+      </thead>
+      <tbody id="ff-summary-tbody"></tbody>
+    </table>
+    <button class="btn btn-warning text-white" onclick="ffStartQuiz()">
+      Another round (same languages)
+    </button>
+    <button class="btn btn-outline-secondary ml-2" onclick="ffReset()">
+      Pick different languages
+    </button>
+  </div>
+
+  <hr>
+  <p class="text-muted small">
+    <strong>How this works.</strong> The quiz mixes three data sources:
+    a hand-curated list of famous false-friend pairs in well-studied
+    language couples, explicit
+    <a href="https://www.wikidata.org/wiki/Property:P5976">P5976 (false friend)</a> sense statements on
+    Wikidata (~190 globally, sense-level), and "true-friend" pairs
+    derived from <a href="https://www.wikidata.org/wiki/Property:P5137">P5137 (item for this sense)</a>
+    bridge words filtered to lemmas with high orthographic similarity
+    (Levenshtein ≥ 55%) so they look genuinely confusing. The
+    cross-script Hindi/Urdu pair is included as a register-drift example,
+    not a true false friend.
+  </p>
+
+</div>
+
+{% endblock %}

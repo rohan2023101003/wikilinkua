@@ -63,19 +63,17 @@ export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
     : "Three are loanwords/cognates. Tap the one that isn't.";
 
   return (
-    <div 
-      className="cdx-card odd-one-out-exercise-card" 
-      style={{ 
-        maxWidth: '750px', 
-        minHeight: '380px',
-        margin: '20px auto', 
+    <div
+      className="cdx-card odd-one-out-exercise-card"
+      style={{
+        maxWidth: '750px',
+        margin: '20px auto',
         padding: '32px',
         border: '1px solid #eaecf0',
         borderRadius: '16px',
         background: '#ffffff',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
         boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
         color: '#202122'
       }}
@@ -88,8 +86,7 @@ export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
           {promptText}
         </div>
 
-        {/* 2x2 Grid of options */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', minHeight: '200px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           {choices.map((choice, idx) => {
             const isSelected = selected?.lexemeId === choice.lexemeId;
             const isCorrect = choice.lexemeId === correctWord.lexemeId;

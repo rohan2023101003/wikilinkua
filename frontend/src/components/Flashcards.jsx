@@ -22,16 +22,15 @@ export function FlashcardExercise({ word, onAnswer }) {
   }, [word.audioUrl, handlePlayAudio]);
 
   return (
-    <div 
-      className="cdx-card flashcard-exercise-card" 
-      style={{ 
-        maxWidth: '750px', 
-        minHeight: '380px',
-        margin: '20px auto', 
+    <div
+      className="cdx-card flashcard-exercise-card"
+      style={{
+        maxWidth: '750px',
+        margin: '20px auto',
         padding: '32px',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
+        gap: '16px',
         border: '1px solid #eaecf0',
         borderRadius: '16px',
         background: '#ffffff',
@@ -44,8 +43,7 @@ export function FlashcardExercise({ word, onAnswer }) {
         {!reveal ? 'New word · tap to flip' : 'Review card'}
       </div>
 
-      {/* Main card box */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 0' }}>
+      <div>
         {!reveal ? (
           /* Card Front - Centered */
           <div style={{ width: '100%', border: '1px solid #eaecf0', borderRadius: '12px', padding: '36px 24px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,.015)', background: '#f8f9fa' }}>

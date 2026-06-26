@@ -233,7 +233,7 @@ export default function Onboarding({ profile, onSaveProfile }) {
               transition: 'all 0.15s ease'
             }}
           >
-            See what you already know
+            Start Learning
           </button>
         </div>
       </form>

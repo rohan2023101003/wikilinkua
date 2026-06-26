@@ -79,19 +79,18 @@ export function MatchPairsExercise({ words, onComplete }) {
   };
 
   return (
-    <div 
-      className="cdx-card match-pairs-exercise-card" 
-      style={{ 
-        maxWidth: '750px', 
-        minHeight: '380px',
-        margin: '20px auto', 
+    <div
+      className="cdx-card match-pairs-exercise-card"
+      style={{
+        maxWidth: '750px',
+        margin: '20px auto',
         padding: '32px',
         border: '1px solid #eaecf0',
         borderRadius: '16px',
         background: '#ffffff',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
+        gap: '24px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
         color: '#202122'
       }}
@@ -202,7 +201,7 @@ export function MatchPairsExercise({ words, onComplete }) {
         </div>
       </div>
       
-      <div style={{ textAlign: 'center', fontSize: '13px', color: '#72777d', marginTop: '24px', fontWeight: '500' }}>
+      <div style={{ textAlign: 'center', fontSize: '13px', color: '#72777d', fontWeight: '500' }}>
         Tap a word on the left, then its translation match on the right
       </div>
     </div>

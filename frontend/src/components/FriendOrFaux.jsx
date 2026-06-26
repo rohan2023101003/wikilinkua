@@ -21,19 +21,18 @@ export function FriendOrFauxExercise({ word, onAnswer }) {
   };
 
   return (
-    <div 
-      className="cdx-card friend-or-faux-exercise-card" 
-      style={{ 
-        maxWidth: '750px', 
-        minHeight: '380px',
-        margin: '20px auto', 
+    <div
+      className="cdx-card friend-or-faux-exercise-card"
+      style={{
+        maxWidth: '750px',
+        margin: '20px auto',
         padding: '32px',
         border: '1px solid #eaecf0',
         borderRadius: '16px',
         background: '#ffffff',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
+        gap: '24px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
         color: '#202122'
       }}
@@ -43,18 +42,26 @@ export function FriendOrFauxExercise({ word, onAnswer }) {
           Friend or Faux
         </div>
 
-        {/* Word equation matching mockup */}
         <div style={{ fontSize: '36px', fontWeight: '800', marginBottom: '16px', letterSpacing: '-0.02em' }}>
           {word.lemma} <span style={{ color: '#3366cc' }}>=</span> {word.knownLemma}
         </div>
 
-        <div style={{ fontSize: '16px', color: '#54595d', lineHeight: '1.5', marginBottom: '24px' }}>
+        <div style={{ fontSize: '16px', color: '#54595d', lineHeight: '1.5' }}>
           Does the target word really mean the same as the known one?
         </div>
+
+        {reveal && (
+          <div style={{ marginTop: '20px', padding: '16px 20px', borderRadius: '8px', background: '#f8f9fa', border: '1px solid #eaecf0', fontSize: '15px', color: '#202122' }}>
+            {word.falseFriend === true ? (
+              <span>❌ <strong>False Friend:</strong> <code>{word.lemma}</code> means <strong>{word.gloss}</strong>, not {word.knownLemma}.</span>
+            ) : (
+              <span>✅ <strong>Cognate/True Friend:</strong> <code>{word.lemma}</code> and <code>{word.knownLemma}</code> both mean <strong>{word.gloss}</strong>.</span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Action buttons (Friend / Faux) */}
-      <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+      <div style={{ display: 'flex', gap: '12px' }}>
         <button
           onClick={() => handleSelect('same')}
           style={{
@@ -66,11 +73,9 @@ export function FriendOrFauxExercise({ word, onAnswer }) {
             color: reveal && correctChoice === 'same' ? '#0e7a63' : (reveal && selectedAnswer === 'same' ? '#bf3c2c' : '#202122'),
             fontWeight: '700',
             fontSize: '18px',
-            textAlign: 'center',
             cursor: reveal ? 'default' : 'pointer',
             opacity: reveal && selectedAnswer !== 'same' && correctChoice !== 'same' ? 0.35 : 1,
             transition: 'all 0.15s ease',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.01)'
           }}
           disabled={reveal}
         >
@@ -88,32 +93,15 @@ export function FriendOrFauxExercise({ word, onAnswer }) {
             color: reveal && correctChoice === 'different' ? '#0e7a63' : (reveal && selectedAnswer === 'different' ? '#bf3c2c' : '#202122'),
             fontWeight: '700',
             fontSize: '18px',
-            textAlign: 'center',
             cursor: reveal ? 'default' : 'pointer',
             opacity: reveal && selectedAnswer !== 'different' && correctChoice !== 'different' ? 0.35 : 1,
             transition: 'all 0.15s ease',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.01)'
           }}
           disabled={reveal}
         >
           Faux
         </button>
       </div>
-
-      {/* Explanatory text after reveal */}
-      {reveal && (
-        <div style={{ marginTop: '24px', padding: '16px 20px', borderRadius: '8px', background: '#f8f9fa', border: '1px solid #eaecf0', textAlign: 'center', fontSize: '15px', color: '#202122' }}>
-          {word.falseFriend === true ? (
-            <div>
-              ❌ <strong>False Friend:</strong> <code>{word.lemma}</code> means <strong>{word.gloss}</strong>, not {word.knownLemma}.
-            </div>
-          ) : (
-            <div>
-              ✅ <strong>Cognate/True Friend:</strong> <code>{word.lemma}</code> and <code>{word.knownLemma}</code> both mean <strong>{word.gloss}</strong>.
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -36,19 +36,17 @@ export function ReverseRecallExercise({ word, words, onAnswer }) {
   };
 
   return (
-    <div 
-      className="cdx-card reverse-recall-exercise-card" 
-      style={{ 
-        maxWidth: '750px', 
-        minHeight: '380px',
-        margin: '20px auto', 
+    <div
+      className="cdx-card reverse-recall-exercise-card"
+      style={{
+        maxWidth: '750px',
+        margin: '20px auto',
         padding: '32px',
         border: '1px solid #eaecf0',
         borderRadius: '16px',
         background: '#ffffff',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
         boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
         color: '#202122'
       }}

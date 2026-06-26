@@ -20,10 +20,17 @@
   var $lang = document.getElementById("rec-lang");
   var $word = document.getElementById("rec-word");
 
-  // Prefill language/word if the page was opened with parameters.
-  if (window.WL_PREFILL && window.WL_PREFILL.qid) {
+  // Prefill language from URL param, or fall back to the learner's target language.
+  var prefillQid = window.WL_PREFILL && window.WL_PREFILL.qid;
+  if (!prefillQid) {
+    try {
+      var stored = JSON.parse(localStorage.getItem("wikilinkua_progress") || "{}");
+      prefillQid = stored.profile && stored.profile.targetLang;
+    } catch (e) {}
+  }
+  if (prefillQid) {
     for (var i = 0; i < $lang.options.length; i++) {
-      if ($lang.options[i].value.split("|")[0] === window.WL_PREFILL.qid) {
+      if ($lang.options[i].value.split("|")[0] === prefillQid) {
         $lang.selectedIndex = i;
         break;
       }
@@ -32,7 +39,7 @@
 
   function setStatus(msg, kind) {
     $status.textContent = msg || "";
-    $status.className = "mt-3 mb-0" + (kind ? " text-" + kind : "");
+    $status.style.color = kind === "danger" ? "#d73333" : kind === "success" ? "#14866d" : "#54595d";
   }
 
   $start.addEventListener("click", async function () {
@@ -50,7 +57,7 @@
       mediaRecorder.onstop = function () {
         audioBlob = new Blob(chunks, { type: "audio/webm" });
         $audio.src = URL.createObjectURL(audioBlob);
-        $playback.classList.remove("d-none");
+        $playback.style.display = "block";
         $submit.disabled = false;
         stream.getTracks().forEach(function (t) { t.stop(); });  // release mic
       };
@@ -74,7 +81,7 @@
 
   $again.addEventListener("click", function () {
     audioBlob = null;
-    $playback.classList.add("d-none");
+    $playback.style.display = "none";
     $submit.disabled = true;
     setStatus("");
   });
@@ -98,8 +105,19 @@
       var res = await fetch("/api/contribute-audio", { method: "POST", body: fd });
       var data = await res.json();
       if (data.ok) {
-        var link = data.url ? ' <a href="' + data.url + '" target="_blank" rel="noopener">View on Commons</a>' : "";
-        $status.innerHTML = '<span class="text-success">✔ ' + data.message + "</span>" + link;
+        $status.textContent = "";
+        var span = document.createElement("span");
+        span.style.color = "#14866d";
+        span.textContent = "✔ " + (data.message || "");
+        $status.appendChild(span);
+        if (data.url) {
+          var a = document.createElement("a");
+          a.href = data.url;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = " View on Commons";
+          $status.appendChild(a);
+        }
       } else {
         setStatus(data.message || "Upload failed.", "warning");
         $submit.disabled = false;

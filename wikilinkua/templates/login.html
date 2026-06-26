@@ -1,45 +1,65 @@
 {% extends "base.html" %}
 
 {% block title %}Log in — WikiLinkua{% endblock %}
+{% block nav_login %}wl-nav__link--active{% endblock %}
+
+{% block styles %}
+.wl-card {
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: 4px;
+  padding: 40px;
+  max-width: 460px;
+  margin: 64px auto;
+}
+.wl-card h1 {
+  font-size: 1.5rem; font-weight: 700; margin-bottom: 12px; color: #202122;
+}
+.wl-card p {
+  font-size: 0.95rem; color: #54595d; line-height: 1.6; margin-bottom: 28px;
+}
+.wl-btn-primary {
+  display: block; width: 100%; padding: 11px 16px;
+  background: #3366cc; color: #fff; font-size: 1rem; font-weight: 600;
+  border: none; border-radius: 2px; cursor: pointer; text-align: center;
+  text-decoration: none; transition: background 0.15s;
+}
+.wl-btn-primary:hover { background: #2a4b8d; color: #fff; text-decoration: none; }
+hr.wl-divider { border: none; border-top: 1px solid #eaecf0; margin: 24px 0; }
+.wl-note { font-size: 0.85rem; color: #72777d; text-align: center; }
+.wl-dev-badge {
+  font-size: 0.8rem; color: #ac6600; background: #fef6e7;
+  border: 1px solid #f0c050; border-radius: 2px;
+  padding: 8px 12px; margin-bottom: 20px; line-height: 1.5;
+}
+{% endblock %}
 
 {% block page_content %}
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-md-7 col-lg-6">
-      <div class="card mt-5">
-        <div class="card-body text-center p-4">
-          <h2 class="mb-3">Log in to WikiLinkua</h2>
-          <p class="text-muted">
-            WikiLinkua uses your <strong>Wikimedia account</strong> &mdash; the same
-            login you already use for Wikipedia, Wikidata or Commons. We never see
-            your password; we only read your username to save your learning progress.
-          </p>
+<div class="wl-page">
+  <div class="wl-card">
+    <h1>Log in to WikiLinkua</h1>
+    <p>
+      WikiLinkua uses your Wikimedia account — the same one for Wikipedia,
+      Wikidata, and Commons. We only read your username to save your progress.
+    </p>
 
-          {% if dev_login %}
-          <div class="alert alert-warning small text-left">
-            <strong>Developer login mode.</strong> This signs you in as a local
-            test user without contacting Wikimedia. Real "Log in with Wikimedia"
-            turns on automatically once the public OAuth consumer is approved
-            (no code change &mdash; just configuration).
-          </div>
-          {% endif %}
-
-          <a href="{{ url_for('auth.login_start') }}"
-             class="btn btn-primary btn-lg btn-block">
-            {% if dev_login %}Log in (dev test user){% else %}Log in with Wikimedia{% endif %}
-          </a>
-
-          <hr>
-          <p class="small mb-0">
-            Don't have a Wikimedia account?
-            <a href="{{ create_account_url }}" target="_blank" rel="noopener">
-              Create one
-            </a>, then come back here and log in. There's no separate WikiLinkua
-            sign-up &mdash; your Wikimedia account is all you need.
-          </p>
-        </div>
-      </div>
+    {% if dev_login %}
+    <div class="wl-dev-badge">
+      Developer mode: signs in as a local test user, no Wikimedia contact.
     </div>
+    {% endif %}
+
+    <a href="{{ url_for('auth.login_start') }}" class="wl-btn-primary">
+      {% if dev_login %}Log in (dev){% else %}Log in with Wikimedia{% endif %}
+    </a>
+
+    <hr class="wl-divider">
+
+    <p class="wl-note">
+      No Wikimedia account?
+      <a href="{{ create_account_url }}" target="_blank" rel="noopener">Create one</a>
+      — then come back here.
+    </p>
   </div>
 </div>
 {% endblock %}

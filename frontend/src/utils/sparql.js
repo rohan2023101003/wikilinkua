@@ -216,6 +216,9 @@ export async function fetchP5976FalseFriends(knownLangs, targetLangQid) {
   return runSparqlQuery(sparql);
 }
 
+const WORDS_CACHE_KEY = 'wikilinkua_words_cache';
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 // Main normalization orchestration
 export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
   const knownLangs = LANGUAGES.filter(l => knownLangQids.includes(l.qid));
@@ -223,6 +226,19 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
 
   if (!knownLangs.length || !targetLang) {
     throw new Error("Invalid languages selected");
+  }
+
+  const cacheKey = [...knownLangQids].sort().join(',') + '->' + targetLangQid;
+  try {
+    const raw = localStorage.getItem(WORDS_CACHE_KEY);
+    if (raw) {
+      const cached = JSON.parse(raw);
+      if (cached.key === cacheKey && Date.now() - cached.ts < CACHE_TTL_MS) {
+        return cached.data;
+      }
+    }
+  } catch (e) {
+    // ignore corrupt cache
   }
 
   // 1. Fetch total count
@@ -371,8 +387,11 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
 
   const allWords = Array.from(finalMap.values());
 
-  return {
-    words: allWords,
-    totalTargetMapped
-  };
+  const result = { words: allWords, totalTargetMapped };
+  try {
+    localStorage.setItem(WORDS_CACHE_KEY, JSON.stringify({ key: cacheKey, ts: Date.now(), data: result }));
+  } catch (e) {
+    // ignore storage full
+  }
+  return result;
 }

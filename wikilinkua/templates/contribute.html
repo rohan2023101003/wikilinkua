@@ -1,90 +1,148 @@
 {% extends "base.html" %}
 
 {% block title %}Contribute pronunciation — WikiLinkua{% endblock %}
+{% block nav_contribute %}wl-nav__link--active{% endblock %}
 
 {% block styles %}
-<style>
-  .rec-wrap { max-width: 640px; margin: 0 auto; }
-  .rec-card { padding: 24px; }
-  .rec-dot {
-      display: inline-block; width: 12px; height: 12px; border-radius: 50%;
-      background: #dc3545; margin-right: 6px; vertical-align: middle;
-  }
-  .rec-pulse { animation: rec-pulse 1s infinite; }
-  @keyframes rec-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
-  #rec-status { min-height: 1.5em; }
-</style>
+.wl-contribute {
+  max-width: 600px;
+  margin: 48px auto;
+}
+.wl-contribute h1 {
+  font-size: 1.5rem; font-weight: 700; color: #202122; margin-bottom: 8px;
+}
+.wl-contribute .wl-lead {
+  font-size: 0.95rem; color: #54595d; line-height: 1.6; margin-bottom: 32px;
+}
+.wl-card {
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: 4px;
+  padding: 28px;
+}
+.wl-field { margin-bottom: 20px; }
+.wl-label {
+  display: block; font-size: 0.9rem; font-weight: 600;
+  color: #202122; margin-bottom: 6px;
+}
+.wl-select, .wl-input {
+  width: 100%; padding: 8px 10px;
+  border: 1px solid #a2a9b1; border-radius: 2px;
+  font-size: 0.95rem; color: #202122; background: #fff;
+  font-family: inherit;
+}
+.wl-select:focus, .wl-input:focus {
+  outline: none; border-color: #3366cc;
+  box-shadow: 0 0 0 2px rgba(51,102,204,.15);
+}
+.wl-rec-row { display: flex; gap: 8px; align-items: center; }
+.wl-btn {
+  padding: 8px 16px; border-radius: 2px; font-size: 0.9rem;
+  font-weight: 600; border: none; cursor: pointer; transition: background 0.15s;
+  font-family: inherit;
+}
+.wl-btn--record { background: #d73333; color: #fff; }
+.wl-btn--record:hover { background: #b32424; }
+.wl-btn--stop { background: #eaecf0; color: #202122; }
+.wl-btn--stop:hover:not(:disabled) { background: #c8ccd1; }
+.wl-btn--stop:disabled { opacity: 0.5; cursor: default; }
+.wl-btn--primary {
+  display: block; width: 100%; padding: 10px 16px;
+  background: #3366cc; color: #fff; font-size: 0.95rem; font-weight: 600;
+  border-radius: 2px; margin-top: 20px; border: none; cursor: pointer;
+  font-family: inherit; transition: background 0.15s;
+}
+.wl-btn--primary:hover:not(:disabled) { background: #2a4b8d; }
+.wl-btn--primary:disabled { opacity: 0.4; cursor: default; }
+.wl-btn--link {
+  background: none; border: none; color: #3366cc; cursor: pointer;
+  font-size: 0.85rem; padding: 4px 0; margin-top: 8px; font-family: inherit;
+}
+.wl-btn--link:hover { text-decoration: underline; }
+.wl-playback { margin-top: 16px; }
+.wl-playback audio { width: 100%; margin-bottom: 4px; }
+#rec-indicator { font-size: 0.85rem; color: #54595d; }
+.rec-dot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  background: #d73333; margin-right: 4px; vertical-align: middle;
+}
+.rec-pulse { animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+#rec-status { margin-top: 12px; font-size: 0.9rem; color: #54595d; min-height: 1.4em; }
+.wl-note { font-size: 0.8rem; color: #72777d; margin-top: 20px; line-height: 1.5; }
 {% endblock %}
 
 {% block page_content %}
-<div class="container rec-wrap">
-  <h1 class="my-4">🎙 Contribute a pronunciation</h1>
-  <p class="text-muted">
-    Record how a word is said and add it to <a href="https://commons.wikimedia.org"
-    target="_blank" rel="noopener">Wikimedia Commons</a> — it becomes your own
-    contribution and helps the next learner hear it. Keep it short: just the word.
-  </p>
+<div class="wl-page">
+  <div class="wl-contribute">
+    <h1>Contribute a pronunciation</h1>
+    <p class="wl-lead">
+      Record a word and publish it to
+      <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>
+      — it helps learners hear real speech.
+    </p>
 
-  <div class="card rec-card">
-    <div class="form-group">
-      <label class="font-weight-bold">Language you're recording</label>
-      <select id="rec-lang" class="form-control">
-        <option value="Q1860|en">English (en)</option>
-        <option value="Q1321|es">Spanish (es)</option>
-        <option value="Q150|fr">French (fr)</option>
-        <option value="Q188|de">German (de)</option>
-        <option value="Q652|it">Italian (it)</option>
-        <option value="Q5146|pt">Portuguese (pt)</option>
-        <option value="Q1568|hi">Hindi (hi)</option>
-        <option value="Q58635|pa">Punjabi (pa)</option>
-        <option value="Q36236|ml">Malayalam (ml)</option>
-        <option value="Q5885|ta">Tamil (ta)</option>
-        <option value="Q9168|fa">Persian (fa)</option>
-        <option value="Q13955|ar">Arabic (ar)</option>
-        <option value="Q9240|id">Indonesian (id)</option>
-        <option value="Q7737|ru">Russian (ru)</option>
-        <option value="Q143|eo">Esperanto (eo)</option>
-      </select>
+    <div class="wl-card">
+      <div class="wl-field">
+        <label class="wl-label" for="rec-lang">Language</label>
+        <select id="rec-lang" class="wl-select">
+          <option value="Q1860|en">English (en)</option>
+          <option value="Q1321|es">Spanish (es)</option>
+          <option value="Q150|fr">French (fr)</option>
+          <option value="Q188|de">German (de)</option>
+          <option value="Q652|it">Italian (it)</option>
+          <option value="Q5146|pt">Portuguese (pt)</option>
+          <option value="Q1568|hi">Hindi (hi)</option>
+          <option value="Q58635|pa">Punjabi (pa)</option>
+          <option value="Q36236|ml">Malayalam (ml)</option>
+          <option value="Q5885|ta">Tamil (ta)</option>
+          <option value="Q9168|fa">Persian (fa)</option>
+          <option value="Q13955|ar">Arabic (ar)</option>
+          <option value="Q9240|id">Indonesian (id)</option>
+          <option value="Q7737|ru">Russian (ru)</option>
+          <option value="Q143|eo">Esperanto (eo)</option>
+        </select>
+      </div>
+
+      <div class="wl-field">
+        <label class="wl-label" for="rec-word">Word</label>
+        <input id="rec-word" class="wl-input" type="text"
+               placeholder="the word you'll say" value="{{ word }}">
+      </div>
+
+      <div class="wl-field">
+        <div class="wl-rec-row">
+          <button id="rec-start" class="wl-btn wl-btn--record">Record</button>
+          <button id="rec-stop" class="wl-btn wl-btn--stop" disabled>Stop</button>
+          <span id="rec-indicator"></span>
+        </div>
+      </div>
+
+      <div id="rec-playback" class="wl-playback" style="display:none">
+        <audio id="rec-audio" controls></audio>
+        <button id="rec-again" class="wl-btn--link">Record again</button>
+      </div>
+
+      <button id="rec-submit" class="wl-btn--primary" disabled>
+        Submit to Commons
+      </button>
+      <p id="rec-status"></p>
     </div>
 
-    <div class="form-group">
-      <label class="font-weight-bold">Word</label>
-      <input id="rec-word" type="text" class="form-control"
-             placeholder="the word you'll say" value="{{ word }}">
-    </div>
-
-    <div class="form-group">
-      <button id="rec-start" class="btn btn-danger">● Record</button>
-      <button id="rec-stop" class="btn btn-secondary" disabled>■ Stop</button>
-      <span id="rec-indicator" class="ml-2"></span>
-    </div>
-
-    <div id="rec-playback" class="form-group d-none">
-      <label class="font-weight-bold">Listen back</label>
-      <audio id="rec-audio" controls class="d-block w-100"></audio>
-      <button id="rec-again" class="btn btn-link px-0">↺ Record again</button>
-    </div>
-
-    <button id="rec-submit" class="btn btn-primary btn-block" disabled>
-      Submit to Commons
-    </button>
-    <p id="rec-status" class="mt-3 mb-0"></p>
+    <p class="wl-note">
+      By submitting you agree to publish under
+      <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank"
+         rel="noopener">CC BY-SA 4.0</a> on Wikimedia Commons.
+    </p>
   </div>
-
-  <p class="text-muted small mt-3">
-    By submitting you agree to publish the recording under
-    <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank"
-       rel="noopener">CC&nbsp;BY-SA&nbsp;4.0</a> on Wikimedia Commons.
-  </p>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // prefill language from ?qid=&code= if provided
   window.WL_PREFILL = {
     qid: "{{ lang_qid }}", code: "{{ lang_code }}", word: "{{ word }}"
   };
 </script>
-<script src="{{ url_for('static', filename='js/record.js') }}"></script>
+<script src="/static/js/record.js"></script>
 {% endblock %}

@@ -132,12 +132,31 @@ export default function App() {
       { id: 'onboarding', label: 'Profile' }
     ];
 
+    const externalLinks = [
+      { href: '/contribute', label: 'Contribute' },
+      { href: '/login', label: 'Login' }
+    ];
+
     const activeGameViews = ['flashcards', 'friend-or-faux', 'recall', 'reverse-recall', 'odd-one-out', 'match-pairs'];
 
+    const linkStyle = {
+      fontWeight: '500',
+      color: '#54595d',
+      borderBottom: '3px solid transparent',
+      borderRadius: '0',
+      padding: '8px 12px',
+      fontSize: '0.95rem',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      textDecoration: 'none',
+      transition: 'all 0.15s ease'
+    };
+
     return (
-      <nav 
-        style={{ 
-          borderBottom: '1px solid #eaecf0', 
+      <nav
+        style={{
+          borderBottom: '1px solid #eaecf0',
           marginBottom: '28px',
           background: '#ffffff',
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
@@ -146,20 +165,20 @@ export default function App() {
           zIndex: 100
         }}
       >
-        <div 
-          style={{ 
-            maxWidth: '1200px', 
-            margin: '0 auto', 
-            display: 'flex', 
-            gap: '24px', 
-            padding: '12px 24px', 
-            alignItems: 'center' 
+        <div
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            display: 'flex',
+            gap: '24px',
+            padding: '12px 24px',
+            alignItems: 'center'
           }}
         >
           <div style={{ fontWeight: '800', fontSize: '1.35rem', color: '#202122', marginRight: 'auto', display: 'flex', alignItems: 'center', letterSpacing: '-0.02em' }}>
             Wiki<span style={{ color: '#3366cc' }}>Linkua</span>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {navItems.map(item => {
               const isHomeActive = item.id === 'game-modes' && activeGameViews.includes(view);
               const isActive = view === item.id || isHomeActive;
@@ -169,7 +188,7 @@ export default function App() {
                   key={item.id}
                   onClick={() => handleNavigate(item.id)}
                   className="cdx-button cdx-button--weight-quiet"
-                  style={{ 
+                  style={{
                     fontWeight: isActive ? '700' : '500',
                     color: isActive ? '#3366cc' : '#54595d',
                     borderBottom: isActive ? '3px solid #3366cc' : '3px solid transparent',
@@ -186,6 +205,12 @@ export default function App() {
                 </button>
               );
             })}
+            <span style={{ width: '1px', height: '20px', background: '#eaecf0', margin: '0 4px' }} />
+            {externalLinks.map(link => (
+              <a key={link.href} href={link.href} style={linkStyle}>
+                {link.label}
+              </a>
+            ))}
           </div>
         </div>
       </nav>

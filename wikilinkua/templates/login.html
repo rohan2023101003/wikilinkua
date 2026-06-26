@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Log in — WikiLinkua{% endblock %}
+
+{% block page_content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+      <div class="card mt-5">
+        <div class="card-body text-center p-4">
+          <h2 class="mb-3">Log in to WikiLinkua</h2>
+          <p class="text-muted">
+            WikiLinkua uses your <strong>Wikimedia account</strong> &mdash; the same
+            login you already use for Wikipedia, Wikidata or Commons. We never see
+            your password; we only read your username to save your learning progress.
+          </p>
+
+          {% if dev_login %}
+          <div class="alert alert-warning small text-left">
+            <strong>Developer login mode.</strong> This signs you in as a local
+            test user without contacting Wikimedia. Real "Log in with Wikimedia"
+            turns on automatically once the public OAuth consumer is approved
+            (no code change &mdash; just configuration).
+          </div>
+          {% endif %}
+
+          <a href="{{ url_for('auth.login_start') }}"
+             class="btn btn-primary btn-lg btn-block">
+            {% if dev_login %}Log in (dev test user){% else %}Log in with Wikimedia{% endif %}
+          </a>
+
+          <hr>
+          <p class="small mb-0">
+            Don't have a Wikimedia account?
+            <a href="{{ create_account_url }}" target="_blank" rel="noopener">
+              Create one
+            </a>, then come back here and log in. There's no separate WikiLinkua
+            sign-up &mdash; your Wikimedia account is all you need.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

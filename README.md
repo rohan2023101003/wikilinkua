@@ -32,6 +32,13 @@ wikilinkua/                # the Flask package
 
 ## Run locally
 
+in the frontend folder:
+```
+npm install
+npm run build
+```
+
+in the root folder:
 ```bash
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt

@@ -10,18 +10,19 @@ main = Blueprint("main", __name__)
 
 
 @main.route("/")
+@main.route("/app/")
 def index():
-    """Landing page listing the games / learning modes."""
-    return render_template("index.html")
+    """Serve the React application."""
+    return render_template("app.html")
 
 
 @main.route("/wikilinkua/")
 def wikilinkua():
-    """WikiLinkua bridge-words explorer."""
-    return render_template("wikilinkua.html")
+    """Serve the React application."""
+    return render_template("app.html")
 
 
 @main.route("/false-friends/")
 def false_friends():
-    """Friend-or-Faux true/false-friend quiz."""
-    return render_template("false-friends.html")
+    """Serve the React application."""
+    return render_template("app.html")

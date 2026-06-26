@@ -43,3 +43,8 @@ class Config:
     WIKIMEDIA_CREATE_ACCOUNT_URL = (
         "https://meta.wikimedia.org/wiki/Special:CreateAccount"
     )
+
+    # Wikimedia Commons API — target for in-app pronunciation uploads.
+    COMMONS_API_URL = os.environ.get(
+        "COMMONS_API_URL", "https://commons.wikimedia.org/w/api.php"
+    )

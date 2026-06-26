@@ -95,6 +95,9 @@ def callback():
         "id": str(profile.get("sub", "")),
         "username": profile.get("username", "Wikimedian"),
     }
+    # Keep the access token so we can act on the user's behalf (e.g. upload audio
+    # to Commons) when the consumer has the needed grants. Dev login has no token.
+    session["oauth_token"] = access_token
     flash("Logged in as " + session["user"]["username"] + ".")
     return redirect(url_for("main.index"))
 

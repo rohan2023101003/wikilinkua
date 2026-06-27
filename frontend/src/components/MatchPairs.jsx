@@ -82,21 +82,20 @@ export function MatchPairsExercise({ words, onComplete }) {
     <div
       className="cdx-card match-pairs-exercise-card"
       style={{
-        maxWidth: '750px',
+        maxWidth: '650px',
         margin: '20px auto',
-        padding: '32px',
-        border: '1px solid #eaecf0',
-        borderRadius: '16px',
+        padding: '28px',
+        border: '1px solid #c8ccd1',
+        borderRadius: '2px',
         background: '#ffffff',
         display: 'flex',
         flexDirection: 'column',
         gap: '24px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
         color: '#202122'
       }}
     >
       <div>
-        <div style={{ fontSize: '13px', fontWeight: '700', color: '#72777d', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '18px', textAlign: 'center' }}>
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#72777d', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '18px', textAlign: 'center' }}>
           Match each pair
         </div>
 
@@ -110,15 +109,13 @@ export function MatchPairsExercise({ words, onComplete }) {
 
               let btnStyle = {
                 padding: '16px 20px',
-                border: '1.5px solid #eaecf0',
-                borderRadius: '8px',
+                border: '1.5px solid #a2a9b1',
+                borderRadius: '2px',
                 fontSize: '17px',
                 fontWeight: '700',
                 textAlign: 'center',
                 cursor: isMatched ? 'default' : 'pointer',
-                background: '#ffffff',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.01)'
+                background: '#ffffff'
               };
 
               if (isMatched) {
@@ -157,19 +154,17 @@ export function MatchPairsExercise({ words, onComplete }) {
 
               let btnStyle = {
                 padding: '16px 20px',
-                border: '1.5px solid #eaecf0',
-                borderRadius: '8px',
+                border: '1.5px solid #a2a9b1',
+                borderRadius: '2px',
                 fontSize: '15px',
                 fontWeight: '600',
                 textAlign: 'center',
                 cursor: isMatched ? 'default' : 'pointer',
                 background: '#ffffff',
-                transition: 'all 0.15s ease',
                 minHeight: '56px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.01)'
+                justifyContent: 'center'
               };
 
               if (isMatched) {
@@ -241,10 +236,10 @@ export function MatchPairs({ words, onNavigate }) {
 
   if (!sets.length) {
     return (
-      <div className="cdx-card" style={{ padding: '36px', textAlign: 'center', margin: '40px auto', maxWidth: '750px', border: '1px solid #eaecf0', borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+      <div className="cdx-card" style={{ padding: '32px', textAlign: 'center', margin: '40px auto', maxWidth: '650px', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#ffffff' }}>
         <h3 style={{ color: '#bf3c2c', fontSize: '1.25rem', fontWeight: '700' }}>Game not available</h3>
-        <p style={{ margin: '16px 0 24px', color: '#54595d' }}>We need at least 3 bridge words with meanings to run this game.</p>
-        <button onClick={() => onNavigate('onboarding')} className="cdx-button cdx-button--action-progressive cdx-button--weight-primary" style={{ padding: '12px 24px', borderRadius: '6px', cursor: 'pointer' }}>
+        <p style={{ margin: '16px 0 24px', color: '#54595d', fontSize: '14px' }}>We need at least 3 bridge words with meanings to run this game.</p>
+        <button onClick={() => onNavigate('onboarding')} className="cdx-button" style={{ padding: '12px 24px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer' }}>
           Configure Profile
         </button>
       </div>
@@ -253,23 +248,23 @@ export function MatchPairs({ words, onNavigate }) {
 
   if (completed) {
     return (
-      <div className="cdx-card" style={{ maxWidth: '600px', margin: '40px auto', padding: '40px', textAlign: 'center', border: '1px solid #eaecf0', borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+      <div className="cdx-card" style={{ maxWidth: '550px', margin: '40px auto', padding: '32px', textAlign: 'center', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#ffffff' }}>
         <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px' }}>Matching complete!</h3>
-        <p style={{ color: '#54595d', marginBottom: '24px' }}>Great job matching all vocabulary pairs.</p>
+        <p style={{ color: '#54595d', marginBottom: '24px', fontSize: '14px' }}>Great job matching all vocabulary pairs.</p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button onClick={() => onNavigate('game-modes')} className="cdx-button cdx-button--action-progressive cdx-button--weight-primary" style={{ padding: '12px 24px', borderRadius: '6px', cursor: 'pointer' }}>Continue</button>
+          <button onClick={() => onNavigate('game-modes')} className="cdx-button" style={{ padding: '12px 24px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer' }}>Continue</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ margin: '20px auto', maxWidth: '750px' }}>
+    <div style={{ margin: '20px auto', maxWidth: '650px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', color: '#54595d' }}>
-        <button onClick={() => onNavigate('game-modes')} className="cdx-button cdx-button--weight-quiet" style={{ fontSize: '0.95rem', padding: '6px 12px', border: '1px solid #c8ccd1', borderRadius: '6px', background: '#fff', cursor: 'pointer', color: '#54595d' }}>← Exit Match</button>
-        <span style={{ fontWeight: '600' }}>Set {currentSetIndex + 1} of {sets.length}</span>
+        <button onClick={() => onNavigate('game-modes')} className="cdx-button" style={{ fontSize: '0.95rem', padding: '6px 12px', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#fff', cursor: 'pointer', color: '#54595d' }}>← Exit Match</button>
+        <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>Set {currentSetIndex + 1} of {sets.length}</span>
       </div>
-      <div style={{ height: '8px', background: '#eaecf0', borderRadius: '4px', overflow: 'hidden', marginBottom: '20px' }}>
+      <div style={{ height: '8px', background: '#eaecf0', borderRadius: '2px', overflow: 'hidden', marginBottom: '20px' }}>
         <div style={{ height: '100%', background: '#3366cc', width: `${((currentSetIndex) / sets.length) * 100}%`, transition: 'width 0.3s ease' }} />
       </div>
       

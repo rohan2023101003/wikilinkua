@@ -5,6 +5,7 @@ import { RecallExercise } from './Recall';
 import { ReverseRecallExercise } from './ReverseRecall';
 import { isWordDue } from '../utils/srs';
 import { LANGUAGES } from '../utils/sparql';
+import { CodexIcon, cdxIconCheck } from './Badges';
 
 // Main Mode Session Manager Component
 function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
@@ -19,11 +20,11 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
     // 1. Filter due words
     const dueWords = words.filter(w => {
       const srs = progress.words?.[w.lexemeId];
-      return srs && isWordDue(srs);
+      return srs && isWordDue(srs) && w.concept && w.gloss;
     });
 
     // 2. Filter new words
-    const newWords = words.filter(w => !progress.words?.[w.lexemeId]);
+    const newWords = words.filter(w => !progress.words?.[w.lexemeId] && w.concept && w.gloss);
 
     // Shuffle
     const shuffledDue = [...dueWords].sort(() => 0.5 - Math.random());
@@ -40,7 +41,7 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
         exercises.push('recall');
         exercises.push('reverse-recall');
       }
-      if (w.falseFriend !== null && w.falseFriend !== undefined) {
+      if (w.falseFriend !== null && w.falseFriend !== undefined && w.knownLemma && w.knownLemma.trim() !== '') {
         exercises.push('friend-or-faux');
       }
 
@@ -82,14 +83,14 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
 
   if (!sessionQueue.length) {
     return (
-      <div className="cdx-card" style={{ padding: '36px', textAlign: 'center', margin: '40px auto', maxWidth: '600px', border: '1px solid #eaecf0', borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+      <div className="cdx-card" style={{ padding: '32px', textAlign: 'center', margin: '40px auto', maxWidth: '600px', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#ffffff' }}>
         <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '8px' }}>Queue clear</h3>
         <p style={{ margin: '16px 0 24px', color: '#54595d', fontSize: '0.95rem' }}>
           You have no due or new words left to review. Great job!
         </p>
         <button 
           onClick={() => onNavigate('bridge-words')} 
-          style={{ padding: '12px 28px', borderRadius: '6px', background: '#3366cc', color: '#fff', border: 'none', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(51,102,204,0.2)' }}
+          style={{ padding: '12px 28px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer' }}
         >
           Explore Bridge Words
         </button>
@@ -104,26 +105,23 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
         style={{ 
           maxWidth: '500px', 
           margin: '40px auto', 
-          padding: '36px',
+          padding: '32px',
           textAlign: 'center',
-          border: '1px solid #eaecf0',
-          borderRadius: '16px',
-          boxShadow: '0 4px 25px rgba(0,0,0,.04)',
+          border: '1px solid #c8ccd1',
+          borderRadius: '2px',
           background: '#ffffff',
           color: '#202122'
         }}
       >
-        <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: '#0e7a63', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 6 9 17l-5-5"/>
-          </svg>
+        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#e9f6f2', border: '2px solid #0e7a63', color: '#0e7a63', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
+          <CodexIcon icon={cdxIconCheck} size="32px" color="#0e7a63" />
         </div>
         <div style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.02em' }}>Lesson complete!</div>
-        <div style={{ fontSize: '15px', color: '#54595d', marginTop: '8px', marginBottom: '28px' }}>
+        <div style={{ fontSize: '15px', color: '#54595d', marginTop: '8px', marginBottom: '24px' }}>
           Nicely done — you've completed today's practice session.
         </div>
 
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1px', background: '#eaecf0', border: '1px solid #eaecf0', borderRadius: '8px', overflow: 'hidden', marginBottom: '28px' }}>
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1px', background: '#c8ccd1', border: '1px solid #c8ccd1', borderRadius: '2px', overflow: 'hidden', marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 20px', background: '#fff', fontSize: '15px' }}>
             <span style={{ color: '#54595d' }}>Words reviewed</span>
             <b style={{ color: '#202122' }}>{sessionQueue.length}</b>
@@ -139,14 +137,13 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
           style={{ 
             width: '100%', 
             padding: '14px', 
-            borderRadius: '6px', 
+            borderRadius: '2px', 
             background: '#3366cc', 
             color: '#fff', 
-            border: 'none', 
+            border: '1px solid #3366cc', 
             fontWeight: '700', 
             fontSize: '16px', 
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(51,102,204,0.2)'
+            cursor: 'pointer'
           }}
         >
           Continue to Dashboard
@@ -163,7 +160,7 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
         <button 
           onClick={() => onNavigate('game-modes')}
           className="cdx-button cdx-button--weight-quiet"
-          style={{ fontSize: '0.95rem', padding: '6px 12px', border: '1px solid #c8ccd1', borderRadius: '6px', background: '#fff', cursor: 'pointer', color: '#54595d' }}
+          style={{ fontSize: '0.95rem', padding: '6px 12px', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#fff', cursor: 'pointer', color: '#54595d' }}
         >
           ← Exit Session
         </button>
@@ -172,7 +169,7 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
         </span>
       </div>
 
-      <div style={{ height: '8px', background: '#eaecf0', borderRadius: '4px', overflow: 'hidden', marginBottom: '24px' }}>
+      <div style={{ height: '8px', background: '#eaecf0', borderRadius: '2px', overflow: 'hidden', marginBottom: '24px' }}>
         <div 
           style={{ 
             height: '100%', 
@@ -183,7 +180,7 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
         />
       </div>
 
-      <div style={{ background: '#eaf3ff', padding: '10px 20px', borderRadius: '6px', border: '1px solid #c8ccd1', marginBottom: '20px', fontSize: '13px', color: '#3366cc', textAlign: 'center', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+      <div style={{ background: '#eaf3ff', padding: '10px 20px', borderRadius: '2px', border: '1px solid #b8d4f9', marginBottom: '20px', fontSize: '13px', color: '#3366cc', textAlign: 'center', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.06em' }}>
         Mode: {
           currentItem.type === 'flashcard' ? 'Flashcard' : 
           currentItem.type === 'friend-or-faux' ? 'Friend or Faux' :
@@ -246,8 +243,13 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
 }
 
 // Game Modes Selection Dashboard
-export default function GameModes({ words, progress, onAnswerWord, onNavigate }) {
+export default function GameModes({ words, progress, onAnswerWord, onNavigate, totalTargetMapped }) {
   const [activeSession, setActiveSession] = useState(false);
+
+  const bridgeWords = words.filter(w => w.isBridge);
+  const overlapPct = totalTargetMapped > 0
+    ? Math.min(100, Math.round((bridgeWords.length / totalTargetMapped) * 100))
+    : 0;
 
   const targetLangObj = LANGUAGES.find(l => l.qid === words[0]?.targetLang) || {};
 
@@ -372,11 +374,11 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
   return (
     <div className="fadeIn" style={{ maxWidth: '1100px', margin: '0 auto', color: '#202122' }}>
       
-      {/* Welcome Hero Area */}
+      {/* Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: '800', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
-            Vocabulary Dashboard
+            WikiLinkua Dashboard
           </h1>
           <div style={{ fontSize: '15px', color: '#54595d' }}>
             Target Language: <strong style={{ color: '#3366cc' }}>{targetLangObj.name || 'Select a language'}</strong>
@@ -384,22 +386,22 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
         </div>
 
         <button 
-          onClick={() => onNavigate('onboarding')}
+          onClick={() => onNavigate('bridge-words', { filter: 'Bridge' })}
           style={{
             padding: '10px 18px',
-            borderRadius: '6px',
-            border: '1px solid #c8ccd1',
-            background: '#ffffff',
-            fontWeight: '600',
+            borderRadius: '2px',
+            border: '1px solid #3366cc',
+            background: '#eaf3ff',
+            color: '#3366cc',
             fontSize: '14px',
+            fontWeight: '700',
             cursor: 'pointer',
-            color: '#54595d',
             transition: 'all 0.15s ease'
           }}
-          onMouseOver={(e) => { e.currentTarget.style.borderColor = '#3366cc'; e.currentTarget.style.color = '#3366cc'; }}
-          onMouseOut={(e) => { e.currentTarget.style.borderColor = '#c8ccd1'; e.currentTarget.style.color = '#54595d'; }}
+          onMouseOver={(e) => { e.currentTarget.style.background = '#d2e4ff'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = '#eaf3ff'; }}
         >
-          Change Profile Settings
+          {overlapPct}% vocabulary overlap
         </button>
       </div>
 
@@ -411,11 +413,10 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
           <div 
             className="cdx-card" 
             style={{ 
-              border: '1px solid #eaecf0', 
-              borderRadius: '16px', 
+              border: '1px solid #c8ccd1', 
+              borderRadius: '2px', 
               padding: '28px', 
               background: '#ffffff',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -435,11 +436,11 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
 
               {/* Stats overview boxes */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-                <div style={{ background: '#f8f9fa', padding: '12px 16px', borderRadius: '8px', border: '1px solid #eaecf0' }}>
+                <div style={{ background: '#f8f9fa', padding: '12px 16px', borderRadius: '2px', border: '1px solid #c8ccd1' }}>
                   <div style={{ fontSize: '20px', fontWeight: '800', color: '#bf3c2c' }}>{dueCount}</div>
                   <div style={{ fontSize: '12px', color: '#54595d', marginTop: '2px' }}>Due for review</div>
                 </div>
-                <div style={{ background: '#f8f9fa', padding: '12px 16px', borderRadius: '8px', border: '1px solid #eaecf0' }}>
+                <div style={{ background: '#f8f9fa', padding: '12px 16px', borderRadius: '2px', border: '1px solid #c8ccd1' }}>
                   <div style={{ fontSize: '20px', fontWeight: '800', color: '#3366cc' }}>{newCount}</div>
                   <div style={{ fontSize: '12px', color: '#54595d', marginTop: '2px' }}>Unseen words</div>
                 </div>
@@ -451,16 +452,14 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
               style={{ 
                 width: '100%',
                 padding: '14px', 
-                borderRadius: '6px', 
+                borderRadius: '2px', 
                 background: '#3366cc', 
                 color: '#fff', 
-                border: 'none',
+                border: '1px solid #3366cc',
                 fontWeight: '700', 
                 fontSize: '16px', 
                 textAlign: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(51, 102, 204, 0.25)',
-                transition: 'all 0.15s ease'
+                cursor: 'pointer'
               }}
               onMouseOver={(e) => e.currentTarget.style.background = '#2a52be'}
               onMouseOut={(e) => e.currentTarget.style.background = '#3366cc'}
@@ -470,7 +469,7 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
           </div>
 
           {/* Quick learning progress report */}
-          <div style={{ border: '1px solid #eaecf0', borderRadius: '16px', padding: '24px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <div style={{ border: '1px solid #c8ccd1', borderRadius: '2px', padding: '24px', background: '#ffffff' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '700', margin: '0 0 16px 0' }}>Vocabulary Progress</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -479,7 +478,7 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
                   <span style={{ color: '#54595d' }}>Mastered ({masteredCount})</span>
                   <strong>{words.length ? Math.round((masteredCount / words.length) * 100) : 0}%</strong>
                 </div>
-                <div style={{ height: '6px', background: '#eaecf0', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ height: '6px', background: '#eaecf0', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', background: '#0e7a63', width: `${words.length ? (masteredCount / words.length) * 100 : 0}%` }} />
                 </div>
               </div>
@@ -489,7 +488,7 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
                   <span style={{ color: '#54595d' }}>Learning ({learningCount})</span>
                   <strong>{words.length ? Math.round((learningCount / words.length) * 100) : 0}%</strong>
                 </div>
-                <div style={{ height: '6px', background: '#eaecf0', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ height: '6px', background: '#eaecf0', borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', background: '#3366cc', width: `${words.length ? (learningCount / words.length) * 100 : 0}%` }} />
                 </div>
               </div>
@@ -499,7 +498,7 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
 
         {/* Right Column: Practice Single Game Mode Grid */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ border: '1px solid #eaecf0', borderRadius: '16px', padding: '28px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <div style={{ border: '1px solid #c8ccd1', borderRadius: '2px', padding: '28px', background: '#ffffff' }}>
             <h2 style={{ fontSize: '20px', fontWeight: '800', margin: '0 0 6px 0', letterSpacing: '-0.01em' }}>
               Practice single skills
             </h2>
@@ -517,30 +516,26 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate })
                     gap: '16px', 
                     alignItems: 'center', 
                     padding: '18px', 
-                    border: '1px solid #eaecf0', 
-                    borderRadius: '12px',
+                    border: '1px solid #c8ccd1', 
+                    borderRadius: '2px',
                     cursor: 'pointer',
-                    background: '#ffffff',
-                    transition: 'all 0.15s ease',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.01)'
+                    background: '#ffffff'
                   }}
                   className="drill-mode-row"
                   onMouseOver={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
                     e.currentTarget.style.borderColor = '#3366cc';
-                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.04)';
+                    e.currentTarget.style.background = '#f8f9fa';
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.borderColor = '#eaecf0';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.01)';
+                    e.currentTarget.style.borderColor = '#c8ccd1';
+                    e.currentTarget.style.background = '#ffffff';
                   }}
                 >
                   <div 
                     style={{ 
                       width: '44px', 
                       height: '44px', 
-                      borderRadius: '8px', 
+                      borderRadius: '2px', 
                       background: mode.bg, 
                       color: mode.color, 
                       display: 'flex', 

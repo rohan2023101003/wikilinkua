@@ -47,7 +47,6 @@ export default function WordsStatus({ words, progress, onNavigate }) {
         </p>
       </div>
 
-      {/* Side-by-side tab selector metric cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '28px' }}>
         {[
           { id: 'Known', label: 'Known words', count: knownWords.length, color: '#0e7a63', bg: '#e9f6f2', border: '#a3dcd0' },
@@ -61,19 +60,17 @@ export default function WordsStatus({ words, progress, onNavigate }) {
               onClick={() => setActiveTab(tab.id)}
               style={{
                 padding: '20px',
-                borderRadius: '12px',
+                borderRadius: '2px',
                 background: isActive ? tab.bg : '#ffffff',
-                border: isActive ? `2px solid ${tab.color}` : '1.5px solid #eaecf0',
+                border: isActive ? `2px solid ${tab.color}` : '1px solid #c8ccd1',
                 cursor: 'pointer',
-                textAlign: 'center',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.015)',
-                transition: 'all 0.15s ease'
+                textAlign: 'center'
               }}
               onMouseOver={(e) => {
-                if (!isActive) e.currentTarget.style.borderColor = tab.border;
+                if (!isActive) e.currentTarget.style.borderColor = tab.color;
               }}
               onMouseOut={(e) => {
-                if (!isActive) e.currentTarget.style.borderColor = '#eaecf0';
+                if (!isActive) e.currentTarget.style.borderColor = '#c8ccd1';
               }}
             >
               <div style={{ fontSize: '32px', fontWeight: '800', color: tab.color }}>{tab.count}</div>
@@ -88,7 +85,7 @@ export default function WordsStatus({ words, progress, onNavigate }) {
       {/* Words Grid Container */}
       <div style={{ margin: '0 0 32px 0' }}>
         {activeList.length === 0 ? (
-          <div style={{ padding: '64px', textAlign: 'center', color: '#72777d', fontStyle: 'italic', background: '#ffffff', border: '1px solid #eaecf0', borderRadius: '12px' }}>
+          <div style={{ padding: '64px', textAlign: 'center', color: '#72777d', fontStyle: 'italic', background: '#ffffff', border: '1px solid #c8ccd1', borderRadius: '2px' }}>
             No words in this category yet.
           </div>
         ) : (
@@ -98,21 +95,19 @@ export default function WordsStatus({ words, progress, onNavigate }) {
                 key={w.lexemeId}
                 style={{ 
                   padding: '20px', 
-                  border: '1px solid #eaecf0',
-                  borderRadius: '12px',
+                  border: '1px solid #c8ccd1',
+                  borderRadius: '2px',
                   background: '#ffffff',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  gap: '12px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.015)',
-                  transition: 'all 0.15s ease'
+                  gap: '12px'
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.borderColor = '#c8ccd1';
+                  e.currentTarget.style.borderColor = '#72777d';
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.borderColor = '#eaecf0';
+                  e.currentTarget.style.borderColor = '#c8ccd1';
                 }}
               >
                 <div>
@@ -124,7 +119,7 @@ export default function WordsStatus({ words, progress, onNavigate }) {
                   </div>
                 </div>
                 
-                <div style={{ borderTop: '1px solid #eaecf0', paddingTop: '12px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ borderTop: '1px solid #c8ccd1', paddingTop: '12px', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '12px', color: '#54595d', fontWeight: '500' }}>Leitner Box Status</span>
                   
                   {activeTab !== 'New' ? (
@@ -132,12 +127,12 @@ export default function WordsStatus({ words, progress, onNavigate }) {
                       <span style={{ fontSize: '13px', fontWeight: '700', color: activeTab === 'Known' ? '#0e7a63' : '#3366cc' }}>
                         {w.pct}%
                       </span>
-                      <div style={{ width: '48px', height: '6px', borderRadius: '3px', background: '#eaecf0', overflow: 'hidden' }}>
+                      <div style={{ width: '48px', height: '6px', borderRadius: '1px', background: '#eaecf0', overflow: 'hidden' }}>
                         <div style={{ width: `${w.pct}%`, height: '100%', background: activeTab === 'Known' ? '#0e7a63' : '#3366cc' }} />
                       </div>
                     </div>
                   ) : (
-                    <span style={{ fontSize: '12px', color: '#72777d', background: '#f8f9fa', padding: '3px 8px', borderRadius: '4px', border: '1px solid #eaecf0', fontWeight: '500' }}>
+                    <span style={{ fontSize: '12px', color: '#72777d', background: '#f8f9fa', padding: '3px 8px', borderRadius: '2px', border: '1px solid #c8ccd1', fontWeight: '500' }}>
                       Not seen
                     </span>
                   )}
@@ -154,15 +149,14 @@ export default function WordsStatus({ words, progress, onNavigate }) {
           onClick={() => onNavigate('game-modes')} 
           style={{ 
             padding: '14px 40px', 
-            borderRadius: '8px', 
+            borderRadius: '2px', 
             background: '#3366cc', 
             color: '#ffffff', 
-            border: 'none', 
+            border: '1px solid #3366cc', 
             fontWeight: '700', 
             fontSize: '15px', 
             cursor: 'pointer',
-            textAlign: 'center',
-            boxShadow: '0 4px 12px rgba(51, 102, 204, 0.2)'
+            textAlign: 'center'
           }}
         >
           Practice Vocabulary

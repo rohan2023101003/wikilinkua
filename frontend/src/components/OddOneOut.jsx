@@ -66,20 +66,19 @@ export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
     <div
       className="cdx-card odd-one-out-exercise-card"
       style={{
-        maxWidth: '750px',
+        maxWidth: '650px',
         margin: '20px auto',
-        padding: '32px',
-        border: '1px solid #eaecf0',
-        borderRadius: '16px',
+        padding: '28px',
+        border: '1px solid #c8ccd1',
+        borderRadius: '2px',
         background: '#ffffff',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
         color: '#202122'
       }}
     >
       <div>
-        <div style={{ fontSize: '13px', fontWeight: '700', color: '#72777d', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px', textAlign: 'center' }}>
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#72777d', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '8px', textAlign: 'center' }}>
           Odd one out
         </div>
         <div style={{ fontSize: '15px', color: '#54595d', marginBottom: '24px', textAlign: 'center', fontWeight: '500' }}>
@@ -92,8 +91,8 @@ export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
             const isCorrect = choice.lexemeId === correctWord.lexemeId;
             
             let itemStyle = {
-              border: '1.5px solid #eaecf0',
-              borderRadius: '12px',
+              border: '1.5px solid #a2a9b1',
+              borderRadius: '2px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -101,9 +100,7 @@ export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
               padding: '24px 16px',
               cursor: reveal ? 'default' : 'pointer',
               background: '#ffffff',
-              transition: 'all 0.15s ease',
-              textAlign: 'center',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.01)'
+              textAlign: 'center'
             };
 
             if (reveal) {
@@ -190,12 +187,12 @@ export function OddOneOut({ words, onNavigate }) {
 
   if (cognateWords.length === 0 || nonCognateWords.length === 0) {
     return (
-      <div className="cdx-card" style={{ padding: '36px', textAlign: 'center', margin: '40px auto', maxWidth: '750px', border: '1px solid #eaecf0', borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+      <div className="cdx-card" style={{ padding: '32px', textAlign: 'center', margin: '40px auto', maxWidth: '650px', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#ffffff' }}>
         <h3 style={{ color: '#bf3c2c', fontSize: '1.25rem', fontWeight: '700' }}>Game not available</h3>
-        <p style={{ margin: '16px 0 24px', color: '#54595d' }}>
+        <p style={{ margin: '16px 0 24px', color: '#54595d', fontSize: '14px' }}>
           This mode requires a mix of cognates and native words. Try changing your profile settings to languages with more partial matches.
         </p>
-        <button onClick={() => onNavigate('onboarding')} className="cdx-button cdx-button--action-progressive cdx-button--weight-primary" style={{ padding: '12px 24px', borderRadius: '6px', cursor: 'pointer' }}>
+        <button onClick={() => onNavigate('onboarding')} className="cdx-button" style={{ padding: '12px 24px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer' }}>
           Configure Profile
         </button>
       </div>
@@ -204,23 +201,23 @@ export function OddOneOut({ words, onNavigate }) {
 
   if (completed) {
     return (
-      <div className="cdx-card" style={{ maxWidth: '600px', margin: '40px auto', padding: '40px', textAlign: 'center', border: '1px solid #eaecf0', borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+      <div className="cdx-card" style={{ maxWidth: '550px', margin: '40px auto', padding: '32px', textAlign: 'center', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#ffffff' }}>
         <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px' }}>Lesson complete</h3>
-        <p style={{ color: '#54595d', marginBottom: '24px' }}>You answered {score} out of {quizQueue.length} correctly.</p>
+        <p style={{ color: '#54595d', marginBottom: '24px', fontSize: '14px' }}>You answered {score} out of {quizQueue.length} correctly.</p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button onClick={() => onNavigate('game-modes')} className="cdx-button cdx-button--action-progressive cdx-button--weight-primary" style={{ padding: '12px 24px', borderRadius: '6px', cursor: 'pointer' }}>Continue</button>
+          <button onClick={() => onNavigate('game-modes')} className="cdx-button" style={{ padding: '12px 24px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer' }}>Continue</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ margin: '20px auto', maxWidth: '750px' }}>
+    <div style={{ margin: '20px auto', maxWidth: '650px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', color: '#54595d' }}>
-        <button onClick={() => onNavigate('game-modes')} className="cdx-button cdx-button--weight-quiet" style={{ fontSize: '0.95rem', padding: '6px 12px', border: '1px solid #c8ccd1', borderRadius: '6px', background: '#fff', cursor: 'pointer', color: '#54595d' }}>← Exit Quiz</button>
-        <span style={{ fontWeight: '600' }}>Question {currentIndex + 1} of {quizQueue.length}</span>
+        <button onClick={() => onNavigate('game-modes')} className="cdx-button" style={{ fontSize: '0.95rem', padding: '6px 12px', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#fff', cursor: 'pointer', color: '#54595d' }}>← Exit Quiz</button>
+        <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>Question {currentIndex + 1} of {quizQueue.length}</span>
       </div>
-      <div style={{ height: '8px', background: '#eaecf0', borderRadius: '4px', overflow: 'hidden', marginBottom: '20px' }}>
+      <div style={{ height: '8px', background: '#eaecf0', borderRadius: '2px', overflow: 'hidden', marginBottom: '20px' }}>
         <div style={{ height: '100%', background: '#3366cc', width: `${((currentIndex) / quizQueue.length) * 100}%`, transition: 'width 0.3s ease' }} />
       </div>
       
@@ -232,7 +229,7 @@ export function OddOneOut({ words, onNavigate }) {
 
       {showNext && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-          <button onClick={handleNext} className="cdx-button cdx-button--action-progressive cdx-button--weight-primary" style={{ padding: '12px 28px', fontSize: '1rem', fontWeight: 'bold', borderRadius: '6px', cursor: 'pointer' }}>
+          <button onClick={handleNext} className="cdx-button" style={{ padding: '12px 28px', fontSize: '1rem', fontWeight: 'bold', borderRadius: '2px', cursor: 'pointer', background: '#3366cc', color: '#fff', border: '1px solid #3366cc' }}>
             {currentIndex + 1 === quizQueue.length ? 'Finish Quiz' : 'Next Question →'}
           </button>
         </div>

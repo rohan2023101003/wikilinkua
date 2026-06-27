@@ -23,6 +23,7 @@ export default function App() {
   const [progress, setProgress] = useState({ words: {} });
   const [words, setWords] = useState([]);
   const [totalTargetMapped, setTotalTargetMapped] = useState(0);
+  const [initialWordsFilter, setInitialWordsFilter] = useState('All');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -119,8 +120,13 @@ export default function App() {
     });
   };
 
-  const handleNavigate = (newView) => {
+  const handleNavigate = (newView, opt = {}) => {
     setView(newView);
+    if (opt && opt.filter) {
+      setInitialWordsFilter(opt.filter);
+    } else {
+      setInitialWordsFilter('All');
+    }
   };
 
   // Render navigation links (no emojis)
@@ -158,10 +164,9 @@ export default function App() {
     return (
       <nav
         style={{
-          borderBottom: '1px solid #eaecf0',
+          borderBottom: '1px solid #c8ccd1',
           marginBottom: '28px',
           background: '#ffffff',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
           position: 'sticky',
           top: 0,
           zIndex: 100
@@ -189,7 +194,7 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => handleNavigate(item.id)}
-                  className="cdx-button cdx-button--weight-quiet"
+                  className="cdx-button"
                   style={{
                     fontWeight: isActive ? '700' : '500',
                     color: isActive ? '#3366cc' : '#54595d',
@@ -199,15 +204,14 @@ export default function App() {
                     fontSize: '0.95rem',
                     background: 'none',
                     border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
+                    cursor: 'pointer'
                   }}
                 >
                   {item.label}
                 </button>
               );
             })}
-            <span style={{ width: '1px', height: '20px', background: '#eaecf0', margin: '0 4px' }} />
+            <span style={{ width: '1px', height: '20px', background: '#c8ccd1', margin: '0 4px' }} />
             {externalLinks.map(link => (
               <a key={link.href} href={link.href} style={linkStyle}>
                 {link.label}
@@ -228,7 +232,7 @@ export default function App() {
     if (loading) {
       return (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div className="cdx-spinner" style={{ margin: '0 auto 20px auto', width: '48px', height: '48px', border: '4px solid #eaecf0', borderTop: '4px solid #3366cc', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div className="cdx-spinner" style={{ margin: '0 auto 20px auto', width: '48px', height: '48px', border: '4px solid #c8ccd1', borderTop: '4px solid #3366cc', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           <h3 style={{ fontSize: '1.25rem', color: '#202122', marginBottom: '8px' }}>Querying Wikidata...</h3>
           <p style={{ color: '#54595d', fontSize: '0.95rem' }}>Fetching lexeme definitions and computing phonetic/cognate matches.</p>
           <style>{`
@@ -243,20 +247,21 @@ export default function App() {
 
     if (error) {
       return (
-        <div className="cdx-card" style={{ padding: '30px', textAlign: 'center', margin: '40px auto', maxWidth: '600px', border: '1px solid #bf3c2c', borderRadius: '8px' }}>
-          <h3 style={{ color: '#bf3c2c', marginBottom: '12px' }}>Connection Error</h3>
-          <p style={{ color: '#54595d', marginBottom: '24px', fontSize: '0.95rem' }}>{error}</p>
+        <div className="cdx-card" style={{ padding: '30px', textAlign: 'center', margin: '40px auto', maxWidth: '600px', border: '1px solid #bf3c2c', borderRadius: '2px', background: '#fee7e6' }}>
+          <h3 style={{ color: '#bf3c2c', marginBottom: '12px', fontWeight: '700' }}>Connection Error</h3>
+          <p style={{ color: '#202122', marginBottom: '24px', fontSize: '0.95rem' }}>{error}</p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button 
               onClick={() => setProfile({ ...profile })} // Triggers reload
-              className="cdx-button cdx-button--action-progressive cdx-button--weight-primary"
-              style={{ padding: '10px 16px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: 'none', cursor: 'pointer' }}
+              className="cdx-button"
+              style={{ padding: '10px 20px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer' }}
             >
               Retry Connection
             </button>
             <button 
               onClick={() => setView('onboarding')}
-              style={{ padding: '10px 16px', borderRadius: '2px', background: '#fff', color: '#3366cc', border: '1px solid #3366cc', cursor: 'pointer' }}
+              className="cdx-button"
+              style={{ padding: '10px 20px', borderRadius: '2px', background: '#fff', color: '#202122', border: '1px solid #a2a9b1', fontWeight: '600', cursor: 'pointer' }}
             >
               Change Languages
             </button>
@@ -273,6 +278,7 @@ export default function App() {
             totalTargetMapped={totalTargetMapped} 
             profile={profile} 
             progress={progress}
+            initialFilter={initialWordsFilter}
             onNavigate={handleNavigate}
           />
         );
@@ -348,6 +354,7 @@ export default function App() {
             progress={progress} 
             onAnswerWord={handleAnswerWord} 
             onNavigate={handleNavigate}
+            totalTargetMapped={totalTargetMapped}
           />
         );
     }

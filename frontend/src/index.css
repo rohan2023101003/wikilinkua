@@ -45,3 +45,8 @@ body {
 .onboarding-card input {
   box-sizing: border-box;
 }
+
+/* Fix flex layout for cards to prevent alignment collapse */
+.cdx-card {
+  align-items: stretch !important;
+}

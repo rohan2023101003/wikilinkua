@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SoundIcon } from './Badges';
+import { SoundIcon, CodexIcon, cdxIconCheck } from './Badges';
 import { playAudio } from '../utils/audio';
 
 export function RecallExercise({ word, words, onAnswer }) {
@@ -42,27 +42,26 @@ export function RecallExercise({ word, words, onAnswer }) {
     <div
       className="cdx-card recall-exercise-card"
       style={{
-        maxWidth: '750px',
+        maxWidth: '650px',
         margin: '20px auto',
-        padding: '32px',
-        border: '1px solid #eaecf0',
-        borderRadius: '16px',
+        padding: '28px',
+        border: '1px solid #c8ccd1',
+        borderRadius: '2px',
         background: '#ffffff',
         display: 'flex',
         flexDirection: 'column',
         gap: '0',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
         color: '#202122'
       }}
     >
       <div>
-        <div style={{ fontSize: '13px', fontWeight: '700', color: '#72777d', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '12px', textAlign: 'center' }}>
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#72777d', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '16px', textAlign: 'center' }}>
           What does this word mean?
         </div>
         
         {/* Word Card Panel */}
-        <div style={{ border: '1px solid #eaecf0', borderRadius: '12px', padding: '32px 24px', textAlign: 'center', margin: '12px 0 24px 0', position: 'relative', background: '#f8f9fa' }}>
-          <div style={{ fontSize: '36px', fontWeight: '800', letterSpacing: '-0.02em' }}>{word.lemma}</div>
+        <div style={{ border: '1px solid #c8ccd1', borderRadius: '2px', padding: '32px 24px', textAlign: 'center', margin: '12px 0 24px 0', position: 'relative', background: '#f8f9fa' }}>
+          <div style={{ fontSize: '36px', fontWeight: '800', letterSpacing: '-0.02em', color: '#202122' }}>{word.lemma}</div>
           {word.targetIpa && <div style={{ fontSize: '14px', color: '#54595d', marginTop: '6px', fontFamily: 'monospace' }}>/{word.targetIpa}/</div>}
           
           {word.audioUrl && (
@@ -71,14 +70,13 @@ export function RecallExercise({ word, words, onAnswer }) {
               style={{ 
                 marginTop: '16px', 
                 background: '#ffffff', 
-                border: '1px solid #eaecf0', 
+                border: '1px solid #a2a9b1', 
                 borderRadius: '50%',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '8px',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
+                padding: '8px'
               }}
               disabled={playing}
             >
@@ -87,7 +85,7 @@ export function RecallExercise({ word, words, onAnswer }) {
           )}
         </div>
 
-        {/* Options Grid for desktop */}
+        {/* Options Grid */}
         <div className="options-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {choices.map((choice, idx) => {
             const isSelected = selected === choice;
@@ -95,8 +93,8 @@ export function RecallExercise({ word, words, onAnswer }) {
             
             let itemStyle = {
               padding: '16px 20px',
-              border: '1px solid #eaecf0',
-              borderRadius: '8px',
+              border: '1px solid #a2a9b1',
+              borderRadius: '2px',
               fontSize: '15px',
               fontWeight: '700',
               cursor: reveal ? 'default' : 'pointer',
@@ -105,8 +103,6 @@ export function RecallExercise({ word, words, onAnswer }) {
               justifyContent: 'center',
               alignItems: 'center',
               background: '#ffffff',
-              transition: 'all 0.15s ease',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.01)',
               position: 'relative'
             };
 
@@ -133,9 +129,9 @@ export function RecallExercise({ word, words, onAnswer }) {
               >
                 <span>{choice}</span>
                 {reveal && isCorrect && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, position: 'absolute', right: '16px' }}>
-                    <path d="M20 6 9 17l-5-5"/>
-                  </svg>
+                  <span style={{ flexShrink: 0, position: 'absolute', right: '12px', display: 'inline-flex', alignItems: 'center' }}>
+                    <CodexIcon icon={cdxIconCheck} size="16px" color="#0e7a63" />
+                  </span>
                 )}
               </div>
             );
@@ -189,10 +185,10 @@ export function Recall({ words, onAnswerWord, onNavigate }) {
 
   if (!quizQueue.length) {
     return (
-      <div className="cdx-card" style={{ padding: '36px', textAlign: 'center', margin: '40px auto', maxWidth: '750px', border: '1px solid #eaecf0', borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+      <div className="cdx-card" style={{ padding: '32px', textAlign: 'center', margin: '40px auto', maxWidth: '650px', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#ffffff' }}>
         <h3 style={{ color: '#bf3c2c', fontSize: '1.25rem', fontWeight: '700' }}>No words available</h3>
-        <p style={{ margin: '16px 0 24px', color: '#54595d' }}>We need bridge words with definitions to run this quiz.</p>
-        <button onClick={() => onNavigate('onboarding')} className="cdx-button cdx-button--action-progressive cdx-button--weight-primary" style={{ padding: '12px 24px', borderRadius: '6px', cursor: 'pointer' }}>
+        <p style={{ margin: '16px 0 24px', color: '#54595d', fontSize: '14px' }}>We need bridge words with definitions to run this quiz.</p>
+        <button onClick={() => onNavigate('onboarding')} className="cdx-button" style={{ padding: '12px 24px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer' }}>
           Configure Profile
         </button>
       </div>
@@ -201,29 +197,29 @@ export function Recall({ words, onAnswerWord, onNavigate }) {
 
   if (completed) {
     return (
-      <div className="cdx-card" style={{ maxWidth: '600px', margin: '40px auto', padding: '40px', textAlign: 'center', border: '1px solid #eaecf0', borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+      <div className="cdx-card" style={{ maxWidth: '550px', margin: '40px auto', padding: '32px', textAlign: 'center', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#ffffff' }}>
         <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px' }}>Lesson complete</h3>
-        <p style={{ color: '#54595d', marginBottom: '24px' }}>You answered {score} out of {quizQueue.length} correctly.</p>
+        <p style={{ color: '#54595d', marginBottom: '24px', fontSize: '14px' }}>You answered {score} out of {quizQueue.length} correctly.</p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button onClick={() => onNavigate('game-modes')} className="cdx-button cdx-button--action-progressive cdx-button--weight-primary" style={{ padding: '12px 24px', borderRadius: '6px', cursor: 'pointer' }}>Continue</button>
+          <button onClick={() => onNavigate('game-modes')} className="cdx-button" style={{ padding: '12px 24px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer' }}>Continue</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ margin: '20px auto', maxWidth: '750px' }}>
+    <div style={{ margin: '20px auto', maxWidth: '650px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', color: '#54595d' }}>
-        <button onClick={() => onNavigate('game-modes')} className="cdx-button cdx-button--weight-quiet" style={{ fontSize: '0.95rem', padding: '6px 12px', border: '1px solid #c8ccd1', borderRadius: '6px', background: '#fff', cursor: 'pointer', color: '#54595d' }}>← Exit Quiz</button>
-        <span style={{ fontWeight: '600' }}>Question {currentIndex + 1} of {quizQueue.length}</span>
+        <button onClick={() => onNavigate('game-modes')} className="cdx-button" style={{ fontSize: '0.95rem', padding: '6px 12px', border: '1px solid #c8ccd1', borderRadius: '2px', background: '#fff', cursor: 'pointer', color: '#54595d' }}>← Exit Quiz</button>
+        <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>Question {currentIndex + 1} of {quizQueue.length}</span>
       </div>
-      <div style={{ height: '8px', background: '#eaecf0', borderRadius: '4px', overflow: 'hidden', marginBottom: '20px' }}>
+      <div style={{ height: '8px', background: '#eaecf0', borderRadius: '2px', overflow: 'hidden', marginBottom: '20px' }}>
         <div style={{ height: '100%', background: '#3366cc', width: `${((currentIndex) / quizQueue.length) * 100}%`, transition: 'width 0.3s ease' }} />
       </div>
       <RecallExercise word={quizQueue[currentIndex]} words={words} onAnswer={handleAnswer} />
       {showNext && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-          <button onClick={handleNext} className="cdx-button cdx-button--action-progressive cdx-button--weight-primary" style={{ padding: '12px 28px', fontSize: '1rem', fontWeight: 'bold', borderRadius: '6px', cursor: 'pointer' }}>
+          <button onClick={handleNext} className="cdx-button" style={{ padding: '12px 28px', fontSize: '1rem', fontWeight: 'bold', borderRadius: '2px', cursor: 'pointer', background: '#3366cc', color: '#fff', border: '1px solid #3366cc' }}>
             {currentIndex + 1 === quizQueue.length ? 'Finish Quiz' : 'Next Question →'}
           </button>
         </div>

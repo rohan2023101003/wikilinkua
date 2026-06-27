@@ -62,10 +62,10 @@ export default function Onboarding({ profile, onSaveProfile }) {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
         
         {/* Step 1: Known Languages - Full Width */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: '#ffffff', padding: '32px', borderRadius: '16px', border: '1px solid #eaecf0', boxShadow: '0 2px 12px rgba(0,0,0,0.015)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: '#ffffff', padding: '32px', borderRadius: '2px', border: '1px solid #c8ccd1' }}>
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', background: '#eaf3ff', color: '#3366cc', fontSize: '14px', fontWeight: 'bold' }}>1</span>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '2px', background: '#eaf3ff', color: '#3366cc', fontSize: '14px', fontWeight: 'bold' }}>1</span>
               Languages you already speak
             </h2>
             <p style={{ fontSize: '14px', color: '#54595d', margin: '0 0 16px 38px' }}>
@@ -83,7 +83,7 @@ export default function Onboarding({ profile, onSaveProfile }) {
                 width: '100%',
                 padding: '10px 12px 10px 36px',
                 border: '1px solid #a2a9b1',
-                borderRadius: '6px',
+                borderRadius: '2px',
                 fontSize: '14px',
                 boxSizing: 'border-box',
                 background: '#ffffff'
@@ -104,7 +104,7 @@ export default function Onboarding({ profile, onSaveProfile }) {
                   onClick={() => handleToggleKnown(lang.qid)}
                   style={{
                     padding: '12px 16px',
-                    borderRadius: '8px',
+                    borderRadius: '2px',
                     fontSize: '14px',
                     fontWeight: '600',
                     background: isSelected ? '#eaf3ff' : '#ffffff',
@@ -114,7 +114,6 @@ export default function Onboarding({ profile, onSaveProfile }) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '10px',
-                    transition: 'all 0.1s ease',
                     textAlign: 'left'
                   }}
                 >
@@ -138,10 +137,10 @@ export default function Onboarding({ profile, onSaveProfile }) {
         </div>
 
         {/* Step 2: Target Language - Full Width */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: '#ffffff', padding: '32px', borderRadius: '16px', border: '1px solid #eaecf0', boxShadow: '0 2px 12px rgba(0,0,0,0.015)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: '#ffffff', padding: '32px', borderRadius: '2px', border: '1px solid #c8ccd1' }}>
           <div>
             <h2 style={{ fontSize: '20px', fontWeight: '800', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', background: '#eaf3ff', color: '#3366cc', fontSize: '14px', fontWeight: 'bold' }}>2</span>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '2px', background: '#eaf3ff', color: '#3366cc', fontSize: '14px', fontWeight: 'bold' }}>2</span>
               Language you want to learn
             </h2>
             <p style={{ fontSize: '14px', color: '#54595d', margin: '0 0 16px 38px' }}>
@@ -159,7 +158,7 @@ export default function Onboarding({ profile, onSaveProfile }) {
                 width: '100%',
                 padding: '10px 12px 10px 36px',
                 border: '1px solid #a2a9b1',
-                borderRadius: '6px',
+                borderRadius: '2px',
                 fontSize: '14px',
                 boxSizing: 'border-box',
                 background: '#ffffff'
@@ -180,7 +179,7 @@ export default function Onboarding({ profile, onSaveProfile }) {
                   onClick={() => setTargetLang(lang.qid)}
                   style={{
                     padding: '12px 16px',
-                    borderRadius: '8px',
+                    borderRadius: '2px',
                     fontSize: '14px',
                     fontWeight: '600',
                     background: isSelected ? '#eaf3ff' : '#ffffff',
@@ -190,7 +189,6 @@ export default function Onboarding({ profile, onSaveProfile }) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '10px',
-                    transition: 'all 0.1s ease',
                     textAlign: 'left'
                   }}
                 >
@@ -220,17 +218,15 @@ export default function Onboarding({ profile, onSaveProfile }) {
           <button
             type="submit"
             style={{
-              padding: '16px 56px',
-              borderRadius: '8px',
+              padding: '14px 48px',
+              borderRadius: '2px',
               background: '#3366cc',
               color: '#ffffff',
-              border: 'none',
+              border: '1px solid #3366cc',
               fontWeight: '700',
               fontSize: '16px',
               textAlign: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(51, 102, 204, 0.25)',
-              transition: 'all 0.15s ease'
+              cursor: 'pointer'
             }}
           >
             Start Learning

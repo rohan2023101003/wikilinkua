@@ -42,8 +42,7 @@ export const PRESETS = [
   { label: 'English → Esperanto', known: ['Q1860'], target: 'Q143' }
 ];
 
-const WL_INNER_LIMIT = 800;
-const WL_MAX_BRIDGES = 300;
+const WL_MAX_BRIDGES = 15000;
 const FF_INNER_LIMIT = 1500;
 const FF_BRIDGE_LIMIT = 400;
 
@@ -138,25 +137,11 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
       ?concept
       (SAMPLE(?conceptLabel_) AS ?conceptLabel)
       (GROUP_CONCAT(DISTINCT CONCAT(STR(?knownLex), "|", ?knownLemma_, "|", ?knownLangCode, "|", COALESCE(?knownIpa_, "")); separator="‖") AS ?knownPairs)
-      (MAX(?isCognate_) AS ?isCognate)
-    WITH {
-      SELECT DISTINCT ?targetLex ?concept ?knownLex WHERE {
-        ?targetLex dct:language wd:${targetLangQid} ;
-                   ontolex:sense ?targetSense .
-        ?targetSense wdt:P5137 ?concept .
-        ?knownLex dct:language ?knownLang ;
-                  ontolex:sense ?knownSense .
-        ?knownSense wdt:P5137 ?concept .
-        VALUES ?knownLang { ${knownValues} }
-      }
-      LIMIT ${WL_INNER_LIMIT}
-    } AS %pairs
     WHERE {
-      INCLUDE %pairs
-      ?targetLex wikibase:lemma ?targetLemma_ .
-      ?knownLex  wikibase:lemma ?knownLemma_ .
-      BIND(LANG(?knownLemma_) AS ?knownLangCode)
-      FILTER(${knownLemmaLangFilter})
+      ?targetLex dct:language wd:${targetLangQid} ;
+                 ontolex:sense ?targetSense ;
+                 wikibase:lemma ?targetLemma_ .
+      ?targetSense wdt:P5137 ?concept .
 
       OPTIONAL {
         ?targetLex ontolex:lexicalForm ?tForm .
@@ -166,13 +151,20 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
         ?targetLex ontolex:lexicalForm ?tFormA .
         ?tFormA wdt:P443 ?targetAudio_ .
       }
+
       OPTIONAL {
-        ?knownLex ontolex:lexicalForm ?kForm .
-        ?kForm wdt:P898 ?knownIpa_ .
-      }
-      OPTIONAL {
-        ?targetLex (wdt:P5191|^wdt:P5191)+ ?knownLex .
-        BIND(1 AS ?isCognate_)
+        ?knownLex dct:language ?knownLang ;
+                  ontolex:sense ?knownSense ;
+                  wikibase:lemma ?knownLemma_ .
+        ?knownSense wdt:P5137 ?concept .
+        VALUES ?knownLang { ${knownValues} }
+        BIND(LANG(?knownLemma_) AS ?knownLangCode)
+        FILTER(${knownLemmaLangFilter})
+
+        OPTIONAL {
+          ?knownLex ontolex:lexicalForm ?kForm .
+          ?kForm wdt:P898 ?knownIpa_ .
+        }
       }
       SERVICE wikibase:label {
         bd:serviceParam wikibase:language "en" .
@@ -183,6 +175,19 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
     LIMIT ${WL_MAX_BRIDGES}
   `;
 
+  return runSparqlQuery(sparql);
+}
+
+// Fetch cognate pairs for target language
+export async function fetchCognatesRaw(targetLangQid) {
+  const sparql = `
+    SELECT DISTINCT ?targetLex ?knownLex WHERE {
+      { ?targetLex wdt:P5191 ?knownLex . ?targetLex dct:language wd:${targetLangQid} . }
+      UNION
+      { ?knownLex wdt:P5191 ?targetLex . ?targetLex dct:language wd:${targetLangQid} . }
+    }
+    LIMIT 20000
+  `;
   return runSparqlQuery(sparql);
 }
 
@@ -216,7 +221,7 @@ export async function fetchP5976FalseFriends(knownLangs, targetLangQid) {
   return runSparqlQuery(sparql);
 }
 
-const WORDS_CACHE_KEY = 'wikilinkua_words_cache';
+const WORDS_CACHE_KEY = 'wikilinkua_words_cache_v3';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Main normalization orchestration
@@ -241,22 +246,41 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
     // ignore corrupt cache
   }
 
-  // 1. Fetch total count
-  const totalTargetMapped = await fetchTotalTargetMapped(targetLangQid);
+  // 1. Fetch total count, bridge words, and cognates in parallel
+  const [totalTargetMapped, rawBridges, rawCognates] = await Promise.all([
+    fetchTotalTargetMapped(targetLangQid),
+    fetchBridgeWordsRaw(knownLangs, targetLangQid),
+    fetchCognatesRaw(targetLangQid).catch(e => {
+      console.error("Failed to fetch cognates:", e);
+      return { results: { bindings: [] } };
+    })
+  ]);
 
-  // 2. Fetch raw bridge words
-  const rawBridges = await fetchBridgeWordsRaw(knownLangs, targetLangQid);
+  // Build cognate mapping set
+  const cognateSet = new Set();
+  if (rawCognates && rawCognates.results && rawCognates.results.bindings) {
+    rawCognates.results.bindings.forEach(row => {
+      if (row.targetLex && row.knownLex) {
+        const tId = row.targetLex.value.split('/').pop();
+        const kId = row.knownLex.value.split('/').pop();
+        cognateSet.add(`${tId}-${kId}`);
+        cognateSet.add(`${kId}-${tId}`);
+      }
+    });
+  }
+
   const bridgesList = rawBridges.results.bindings.map(row => {
     const knownPairs = (row.knownPairs && row.knownPairs.value)
       ? row.knownPairs.value.split('‖').map(s => {
           const parts = s.split('|');
+          if (!parts[0]) return null;
           return {
             lexUri: parts[0],
             lemma: parts[1],
             code: parts[2] || '',
             ipa: parts[3] || '',
           };
-        })
+        }).filter(Boolean)
       : [];
 
     const targetIpa = row.targetIpa ? row.targetIpa.value : '';
@@ -271,19 +295,29 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
       }
     });
 
-    const isCognate = parseInt(row.isCognate ? row.isCognate.value : '0', 10) === 1;
+    const lexemeId = row.targetLex.value.split('/').pop();
+    let isCognate = false;
+    knownPairs.forEach(p => {
+      if (p.lexUri) {
+        const kId = p.lexUri.split('/').pop();
+        if (cognateSet.has(`${lexemeId}-${kId}`)) {
+          isCognate = true;
+        }
+      }
+    });
+
     const firstKnownPair = knownPairs[0] || {};
     const firstKnownLang = LANGUAGES.find(l => l.code === firstKnownPair.code) || {};
 
     const targetLemma = row.targetLemma ? row.targetLemma.value : '';
-    const lemmaSim = getLemmaSimilarity(targetLemma, firstKnownPair.lemma);
+    const lemmaSim = firstKnownPair.lemma ? getLemmaSimilarity(targetLemma, firstKnownPair.lemma) : null;
 
     // If similarity is >= 0.55, mark falseFriend as false (meaning it's a True Friend)
     // Otherwise, mark null (just a standard bridge word)
     const falseFriend = (lemmaSim !== null && lemmaSim >= 0.55) ? false : null;
 
     return {
-      lexemeId: row.targetLex.value.split('/').pop(),
+      lexemeId,
       lemma: targetLemma,
       targetLang: targetLangQid,
       knownLang: firstKnownLang.qid || null,
@@ -296,7 +330,8 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
       knownLemma: firstKnownPair.lemma || '',
       knownGloss: row.conceptLabel ? row.conceptLabel.value : '',
       targetIpa, // Added targetIpa field
-      ipaSimilarity // Extra helper field
+      ipaSimilarity, // Extra helper field
+      isBridge: knownPairs.length > 0
     };
   });
 
@@ -320,7 +355,8 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
         falseFriend: true,
         audioUrl: null,
         knownLemma: row.lemma1.value,
-        knownGloss: row.gloss1 ? row.gloss1.value : row.lemma1.value
+        knownGloss: row.gloss1 ? row.gloss1.value : row.lemma1.value,
+        isBridge: true
       };
     });
   } catch (e) {
@@ -368,7 +404,8 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
         audioUrl: null,
         knownLemma: knownLemma,
         knownGloss: meaningA,
-        note: c.note || '' // helper detail
+        note: c.note || '', // helper detail
+        isBridge: true
       });
     }
   });

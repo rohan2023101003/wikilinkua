@@ -221,7 +221,7 @@ export async function fetchP5976FalseFriends(knownLangs, targetLangQid) {
   return runSparqlQuery(sparql);
 }
 
-const WORDS_CACHE_KEY = 'wikilinkua_words_cache_v3';
+const WORDS_CACHE_KEY = 'wikilinkua_words_cache_v4';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Main normalization orchestration
@@ -316,19 +316,30 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
     // Otherwise, mark null (just a standard bridge word)
     const falseFriend = (lemmaSim !== null && lemmaSim >= 0.55) ? false : null;
 
+    const knownLemma = firstKnownPair.lemma || '';
+    let gloss = row.conceptLabel ? row.conceptLabel.value : '';
+    if (!gloss || /^[Q]\d+$/.test(gloss)) {
+      gloss = knownLemma || gloss;
+    }
+
+    let knownGloss = row.conceptLabel ? row.conceptLabel.value : '';
+    if (!knownGloss || /^[Q]\d+$/.test(knownGloss)) {
+      knownGloss = knownLemma || knownGloss;
+    }
+
     return {
       lexemeId,
       lemma: targetLemma,
       targetLang: targetLangQid,
       knownLang: firstKnownLang.qid || null,
       concept: row.concept.value.split('/').pop(),
-      gloss: row.conceptLabel ? row.conceptLabel.value : '',
+      gloss: gloss,
       cognate: isCognate,
       phoneticMatch: ipaSimilarity !== null && ipaSimilarity >= 0.6,
       falseFriend,
       audioUrl: targetAudio,
-      knownLemma: firstKnownPair.lemma || '',
-      knownGloss: row.conceptLabel ? row.conceptLabel.value : '',
+      knownLemma: knownLemma,
+      knownGloss: knownGloss,
       targetIpa, // Added targetIpa field
       ipaSimilarity, // Extra helper field
       isBridge: knownPairs.length > 0

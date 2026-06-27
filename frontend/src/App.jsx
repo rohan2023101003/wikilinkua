@@ -6,6 +6,7 @@ import FriendOrFaux from './components/FriendOrFaux';
 import WordsStatus from './components/WordsStatus';
 import GameModes from './components/GameModes';
 import PhrasesMode from './components/PhrasesMode';
+import VideoMode from './components/VideoMode';
 
 // Import new game modes
 import { Recall } from './components/Recall';
@@ -137,6 +138,7 @@ export default function App() {
       { id: 'bridge-words', label: 'Words' },
       { id: 'phrases', label: 'Phrases' },
       { id: 'words-status', label: 'Progress' },
+      { id: 'video', label: 'Video' },
       { id: 'onboarding', label: 'Profile' }
     ];
 
@@ -343,6 +345,15 @@ export default function App() {
           <WordsStatus
             words={words}
             progress={progress}
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'video':
+        return (
+          <VideoMode
+            profile={profile}
+            words={words}
+            onAnswerWord={handleAnswerWord}
             onNavigate={handleNavigate}
           />
         );

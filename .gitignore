@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- WikiLinkua: commit the built frontend bundle ---
+# Toolforge deploys with the Python buildpack only (no `npm run build` on the
+# server), so the Vite output must be committed for the app to load when deployed.
+# This re-includes it despite the generic `dist/` rule above.
+!wikilinkua/static/dist/
+!wikilinkua/static/dist/**

@@ -5,6 +5,7 @@ import Flashcards from './components/Flashcards';
 import FriendOrFaux from './components/FriendOrFaux';
 import WordsStatus from './components/WordsStatus';
 import GameModes from './components/GameModes';
+import PhrasesMode from './components/PhrasesMode';
 
 // Import new game modes
 import { Recall } from './components/Recall';
@@ -128,6 +129,7 @@ export default function App() {
     const navItems = [
       { id: 'game-modes', label: 'Home' },
       { id: 'bridge-words', label: 'Words' },
+      { id: 'phrases', label: 'Phrases' },
       { id: 'words-status', label: 'Progress' },
       { id: 'onboarding', label: 'Profile' }
     ];
@@ -321,11 +323,20 @@ export default function App() {
             onNavigate={handleNavigate}
           />
         );
+      case 'phrases':
+        return (
+          <PhrasesMode
+            words={words}
+            progress={progress}
+            profile={profile}
+            onNavigate={handleNavigate}
+          />
+        );
       case 'words-status':
         return (
-          <WordsStatus 
-            words={words} 
-            progress={progress} 
+          <WordsStatus
+            words={words}
+            progress={progress}
             onNavigate={handleNavigate}
           />
         );

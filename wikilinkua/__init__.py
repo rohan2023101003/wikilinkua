@@ -24,9 +24,11 @@ def create_app():
     from .views import main as main_blueprint
     from .auth import bp as auth_blueprint, current_user
     from .contribute import bp as contribute_blueprint
+    from .phrases import bp as phrases_blueprint
     app.register_blueprint(main_blueprint)
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(contribute_blueprint)
+    app.register_blueprint(phrases_blueprint)
 
     # Endpoints reachable WITHOUT being logged in: the login flow + static files.
     PUBLIC_ENDPOINTS = {

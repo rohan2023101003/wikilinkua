@@ -14,30 +14,21 @@ export function getLang(qid) {
   return LANGUAGES.find(l => l.qid === qid) || null;
 }
 
-async function fetchCategoryFiles(cmtitle) {
+export async function fetchVideosInLanguage(langName) {
   const data = await commonsApi({
     action: 'query',
     list: 'categorymembers',
-    cmtitle,
+    cmtitle: `Category:Videos in ${langName}`,
     cmtype: 'file',
     cmlimit: '500',
   });
   return (data.query?.categorymembers || []).map(m => m.title);
 }
 
-export async function fetchCategoryVideos(langName) {
-  return fetchCategoryFiles(`Category:Videos with ${langName} subtitles`);
-}
-
-export async function fetchVideosInLanguage(langName) {
-  return fetchCategoryFiles(`Category:Videos in ${langName}`);
-}
-
 export async function fetchVideoThumbnails(titles) {
   const results = {};
-  const chunkSize = 50;
-  for (let i = 0; i < titles.length; i += chunkSize) {
-    const chunk = titles.slice(i, i + chunkSize);
+  for (let i = 0; i < titles.length; i += 50) {
+    const chunk = titles.slice(i, i + 50);
     const data = await commonsApi({
       action: 'query',
       titles: chunk.join('|'),
@@ -48,29 +39,51 @@ export async function fetchVideoThumbnails(titles) {
     Object.values(data.query?.pages || {}).forEach(page => {
       const info = page.imageinfo?.[0];
       if (info?.url) {
-        const raw = page.title;
-        const name = raw.replace(/^File:/, '').replace(/\.[^.]+$/, '');
-        results[raw] = {
-          title: raw,
-          name: info.extmetadata?.ObjectName?.value || name,
-          thumbUrl: info.thumburl || null,
-          videoUrl: info.url,
-        };
+        const name = (info.extmetadata?.ObjectName?.value || page.title.replace(/^File:/, '')).replace(/\.[^.]+$/, '');
+        results[page.title] = { title: page.title, name, thumbUrl: info.thumburl || null, videoUrl: info.url };
       }
     });
   }
   return results;
 }
 
+// Batch-check which TimedText subtitle pages actually exist.
+// Returns Map<videoTitle, Set<langCode>> for tracks that exist.
+export async function checkSubtitleTracks(videoTitles, langCodes) {
+  const result = new Map(videoTitles.map(t => [t, new Set()]));
+
+  const checks = videoTitles.flatMap(title => {
+    const bare = title.replace(/^File:/, '');
+    return langCodes.map(code => ({ tt: `TimedText:${bare}.${code}.srt`, title, code }));
+  });
+
+  for (let i = 0; i < checks.length; i += 50) {
+    const chunk = checks.slice(i, i + 50);
+    const lookup = new Map(chunk.map(c => [c.tt.replace(/_/g, ' '), c]));
+    const data = await commonsApi({
+      action: 'query',
+      titles: chunk.map(c => c.tt).join('|'),
+      prop: 'info',
+    });
+    Object.values(data.query?.pages || {}).forEach(page => {
+      if (!('missing' in page)) {
+        const entry = lookup.get(page.title.replace(/_/g, ' '));
+        if (entry) result.get(entry.title)?.add(entry.code);
+      }
+    });
+  }
+
+  return result;
+}
+
 export async function fetchSubtitleRaw(fileTitle, langCode) {
   const bare = fileTitle.replace(/^File:/, '');
-  const ttitle = `TimedText:${bare}.${langCode}.srt`;
   const data = await commonsApi({
     action: 'query',
     prop: 'revisions',
     rvprop: 'content',
     rvslots: 'main',
-    titles: ttitle,
+    titles: `TimedText:${bare}.${langCode}.srt`,
   });
   const page = Object.values(data.query?.pages || {})[0];
   return page?.revisions?.[0]?.slots?.main?.['*'] || null;
@@ -78,8 +91,7 @@ export async function fetchSubtitleRaw(fileTitle, langCode) {
 
 export function parseSrt(srtText) {
   if (!srtText) return [];
-  const blocks = srtText.trim().split(/\n\s*\n/);
-  return blocks.flatMap(block => {
+  return srtText.trim().split(/\n\s*\n/).flatMap(block => {
     const lines = block.split('\n');
     const tsIdx = lines.findIndex(l => l.includes('-->'));
     if (tsIdx < 0) return [];

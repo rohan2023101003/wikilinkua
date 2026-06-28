@@ -7,6 +7,7 @@ import WordsStatus from './components/WordsStatus';
 import GameModes from './components/GameModes';
 import PhrasesMode from './components/PhrasesMode';
 import VideoMode from './components/VideoMode';
+import ArticleMode from './components/ArticleMode';
 
 // Import new game modes
 import { Recall } from './components/Recall';
@@ -139,6 +140,7 @@ export default function App() {
       { id: 'phrases', label: 'Phrases' },
       { id: 'words-status', label: 'Progress' },
       { id: 'video', label: 'Video' },
+      { id: 'article', label: 'Article' },
       { id: 'onboarding', label: 'Profile' }
     ];
 
@@ -353,6 +355,16 @@ export default function App() {
           <VideoMode
             profile={profile}
             words={words}
+            onAnswerWord={handleAnswerWord}
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'article':
+        return (
+          <ArticleMode
+            profile={profile}
+            words={words}
+            progress={progress}
             onAnswerWord={handleAnswerWord}
             onNavigate={handleNavigate}
           />

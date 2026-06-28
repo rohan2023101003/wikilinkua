@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
+export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer, roundIndex }) {
   const [correctWord, setCorrectWord] = useState(null);
   const [choices, setChoices] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -44,7 +44,7 @@ export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
 
     const allChoices = [...selectedDistractors, selectedCorrect].sort(() => 0.5 - Math.random());
     setChoices(allChoices);
-  }, [cognateWords, nonCognateWords]);
+  }, [cognateWords, nonCognateWords, roundIndex]);
 
   const handleSelect = (choice) => {
     if (reveal || !correctWord) return;
@@ -59,8 +59,8 @@ export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
   }
 
   const promptText = isCognateOdd
-    ? "Three are native words. Tap the one that is a loanword/cognate."
-    : "Three are loanwords/cognates. Tap the one that isn't.";
+    ? "Three are non-cognates. Tap the one cognate."
+    : "Three are cognates. Tap the one non-cognate.";
 
   return (
     <div
@@ -83,6 +83,9 @@ export function OddOneOutExercise({ cognateWords, nonCognateWords, onAnswer }) {
         </div>
         <div style={{ fontSize: '15px', color: '#54595d', marginBottom: '24px', textAlign: 'center', fontWeight: '500' }}>
           {promptText}
+        </div>
+        <div style={{ fontSize: '13px', color: '#72777d', marginBottom: '20px', textAlign: 'center' }}>
+          Cognate = word related by origin/similarity to a word you already know.
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -222,8 +225,10 @@ export function OddOneOut({ words, onNavigate }) {
       </div>
       
       <OddOneOutExercise 
+        key={currentIndex}
         cognateWords={cognateWords} 
         nonCognateWords={nonCognateWords} 
+        roundIndex={currentIndex}
         onAnswer={handleAnswer} 
       />
 

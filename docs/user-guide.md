@@ -17,12 +17,24 @@ Your profile and learning progress are stored in your browser on that device unl
 
 - Bridge word: a target-language word that connects to something you already know through meaning, sound, or both.
 - Cognate: a word with a shared historical origin or a direct cognate link in Wikidata.
+- Friend / Faux: lookalike cross-language words that are either true matches (friend) or misleading mismatches (faux / false friend).
 - Phonetic match: a word that sounds similar enough to be useful for learning.
 - False friend: a word that looks similar but does not mean what you would expect.
+- Gloss: the short meaning label shown for a word.
+- Leitner box: the spaced-repetition level used to schedule the next review.
 - New word / unseen word: a word you have not answered yet.
 - Learning word: a word you have started practicing but have not mastered yet.
 - Known word: a word that has reached the mastery threshold in the Leitner system.
 - Due for review: a word whose review time has arrived or passed.
+
+## Practice mode glossary
+
+- Bridge flashcards: quick front/back review of bridge words.
+- Friend or Faux: classify lookalike pairs as true friend vs false friend.
+- Recall and reverse recall: train both directions of memory (word -> meaning and meaning -> word).
+- Odd one out and match pairs: pattern drills for discrimination and fast recall.
+- Phrases: sentence practice that uses your known/learning vocabulary and spaced repetition.
+- Video and article mode: real-world input from Wikimedia Commons and Wikipedia, converted into vocabulary drills.
 
 ## Main screens
 

@@ -82,7 +82,8 @@ export async function fetchP5831Phrases(targetQid, targetCode, limit = 25) {
     SELECT ?lemma ?ex WHERE {
       ?lex dct:language wd:${targetQid} ;
            wikibase:lemma ?lemma ;
-           wdt:P5831 ?ex .
+           ontolex:sense ?sense .
+      ?sense wdt:P5831 ?ex .
       FILTER(LANG(?ex) = "${targetCode}")
     } LIMIT ${limit}
   `;

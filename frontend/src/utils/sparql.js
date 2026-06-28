@@ -128,6 +128,8 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
     .map(c => 'LANG(?knownLemma_) = "' + c + '"')
     .join(' || ');
 
+  const labelLangs = [...knownCodes, 'en'].join(',');
+
   const sparql = `
     SELECT
       ?targetLex
@@ -145,10 +147,12 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
 
       OPTIONAL {
         ?targetLex ontolex:lexicalForm ?tForm .
+        ?tForm ontolex:representation ?targetLemma_ .
         ?tForm wdt:P898 ?targetIpa_ .
       }
       OPTIONAL {
         ?targetLex ontolex:lexicalForm ?tFormA .
+        ?tFormA ontolex:representation ?targetLemma_ .
         ?tFormA wdt:P443 ?targetAudio_ .
       }
 
@@ -167,7 +171,7 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
         }
       }
       SERVICE wikibase:label {
-        bd:serviceParam wikibase:language "en" .
+        bd:serviceParam wikibase:language "${labelLangs}" .
         ?concept rdfs:label ?conceptLabel_ .
       }
     }
@@ -178,13 +182,25 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
   return runSparqlQuery(sparql);
 }
 
-// Fetch cognate pairs for target language
-export async function fetchCognatesRaw(targetLangQid) {
+// Fetch cognate pairs for target language restricted to known languages
+export async function fetchCognatesRaw(targetLangQid, knownLangs) {
+  const knownValues = (knownLangs || []).map(l => 'wd:' + l.qid).join(' ');
+  const langFilter = knownValues
+    ? `?knownLex dct:language ?kLang . VALUES ?kLang { ${knownValues} }`
+    : '';
   const sparql = `
     SELECT DISTINCT ?targetLex ?knownLex WHERE {
-      { ?targetLex wdt:P5191 ?knownLex . ?targetLex dct:language wd:${targetLangQid} . }
+      {
+        ?targetLex wdt:P5191 ?knownLex .
+        ?targetLex dct:language wd:${targetLangQid} .
+        ${langFilter}
+      }
       UNION
-      { ?knownLex wdt:P5191 ?targetLex . ?targetLex dct:language wd:${targetLangQid} . }
+      {
+        ?knownLex wdt:P5191 ?targetLex .
+        ?targetLex dct:language wd:${targetLangQid} .
+        ${langFilter}
+      }
     }
     LIMIT 20000
   `;
@@ -194,7 +210,10 @@ export async function fetchCognatesRaw(targetLangQid) {
 // Wikidata P5976 (false friends) query
 export async function fetchP5976FalseFriends(knownLangs, targetLangQid) {
   const knownQids = knownLangs.map(l => l.qid);
+  const knownCodes = knownLangs.map(l => l.code);
   const knownValues = knownQids.map(q => 'wd:' + q).join(' ');
+  const glossLangs = [...knownCodes, 'en'].map(c => `LANG(?gloss1_) = "${c}"`).join(' || ');
+  const glossLangs2 = [...knownCodes, 'en'].map(c => `LANG(?gloss2_) = "${c}"`).join(' || ');
 
   const sparql = `
     SELECT
@@ -211,8 +230,8 @@ export async function fetchP5976FalseFriends(knownLangs, targetLangQid) {
             wikibase:lemma ?lemma2_ ;
             dct:language wd:${targetLangQid} .
       VALUES ?lang1 { ${knownValues} }
-      OPTIONAL { ?s1 skos:definition ?gloss1_ . FILTER(LANG(?gloss1_) = "en") }
-      OPTIONAL { ?s2 skos:definition ?gloss2_ . FILTER(LANG(?gloss2_) = "en") }
+      OPTIONAL { ?s1 skos:definition ?gloss1_ . FILTER(${glossLangs}) }
+      OPTIONAL { ?s2 skos:definition ?gloss2_ . FILTER(${glossLangs2}) }
     }
     GROUP BY ?lex1 ?lex2 ?lang1
     LIMIT 100
@@ -250,7 +269,7 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
   const [totalTargetMapped, rawBridges, rawCognates] = await Promise.all([
     fetchTotalTargetMapped(targetLangQid),
     fetchBridgeWordsRaw(knownLangs, targetLangQid),
-    fetchCognatesRaw(targetLangQid).catch(e => {
+    fetchCognatesRaw(targetLangQid, knownLangs).catch(e => {
       console.error("Failed to fetch cognates:", e);
       return { results: { bindings: [] } };
     })
@@ -312,9 +331,10 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
     const targetLemma = row.targetLemma ? row.targetLemma.value : '';
     const lemmaSim = firstKnownPair.lemma ? getLemmaSimilarity(targetLemma, firstKnownPair.lemma) : null;
 
-    // If similarity is >= 0.55, mark falseFriend as false (meaning it's a True Friend)
-    // Otherwise, mark null (just a standard bridge word)
-    const falseFriend = (lemmaSim !== null && lemmaSim >= 0.55) ? false : null;
+    // Do not heuristically mark as true/false friend here.
+    // P5976 data (fetched separately) is the authoritative source for false friends.
+    // Lemma similarity is stored for UI display only.
+    const falseFriend = null;
 
     const knownLemma = firstKnownPair.lemma || '';
     let gloss = row.conceptLabel ? row.conceptLabel.value : '';

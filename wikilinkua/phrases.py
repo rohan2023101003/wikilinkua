@@ -73,7 +73,8 @@ def phrases():
                 break
 
         audio = None
-        if r.get("audios"):
+        audios = r.get("audios") or []
+        if audios and len(audios) > 0:
             audio = "https://audio.tatoeba.org/sentences/{lang}/{sid}.mp3".format(
                 lang=from3, sid=r.get("id"))
 

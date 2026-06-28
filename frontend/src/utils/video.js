@@ -15,14 +15,23 @@ export function getLang(qid) {
 }
 
 export async function fetchVideosInLanguage(langName) {
-  const data = await commonsApi({
-    action: 'query',
-    list: 'categorymembers',
-    cmtitle: `Category:Videos in ${langName}`,
-    cmtype: 'file',
-    cmlimit: '500',
-  });
-  return (data.query?.categorymembers || []).map(m => m.title);
+  const categories = [
+    `Category:Videos in ${langName}`,
+    `Category:${langName} videos`,
+    `Category:${langName}-language videos`,
+  ];
+  for (const cmtitle of categories) {
+    const data = await commonsApi({
+      action: 'query',
+      list: 'categorymembers',
+      cmtitle,
+      cmtype: 'file',
+      cmlimit: '500',
+    });
+    const members = (data.query?.categorymembers || []).map(m => m.title);
+    if (members.length > 0) return members;
+  }
+  return [];
 }
 
 export async function fetchVideoThumbnails(titles) {

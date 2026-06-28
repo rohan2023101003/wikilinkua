@@ -1,20 +1,20 @@
-# WikiLinkua
+﻿# WikiLinkua
 
-Learn a new language through the languages you **already** know — powered by
+Learn a new language through the languages you **already** know - powered by
 Wikidata Lexemes. Wikimedia Hackathon 2026 ([T425045](https://phabricator.wikimedia.org/T425045)).
 
 Standalone web app (independent of Ordia, where the two games were first
 prototyped). It currently ships two modes:
 
-- **Bridge Words** (`/wikilinkua/`) — pick the languages you speak and a target
+- **Bridge Words** (`/wikilinkua/`) - pick the languages you speak and a target
   language; it finds the words whose meanings cross over (cognates, loanwords,
   phonetic look-alikes) and turns them into a flashcard quiz with audio.
-- **Friend or Faux** (`/false-friends/`) — a quiz on true friends vs *faux amis*.
+- **Friend or Faux** (`/false-friends/`) - a quiz on true friends vs *faux amis*.
 
 All language data is fetched live in the browser from the
 [Wikidata Query Service](https://query.wikidata.org/sparql); there is no database
 yet. More learning features (daily lessons, spaced repetition, progress/streaks,
-optional Wikimedia login) are planned — see `PROPOSAL.md` and `PROJECT_SETUP.md`.
+optional Wikimedia login) are planned - see `PROPOSAL.md` and `PROJECT_SETUP.md`.
 
 ## Project layout
 

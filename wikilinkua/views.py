@@ -26,3 +26,21 @@ def wikilinkua():
 def false_friends():
     """Serve the React application."""
     return render_template("app.html")
+
+
+@main.route("/guide")
+def guide():
+    """Serve the user guide."""
+    return render_template("guide.html")
+
+
+@main.route("/docs")
+def docs_index():
+    """Serve the docs landing page."""
+    return render_template("docs_index.html")
+
+
+@main.route("/privacy")
+def privacy():
+    """Serve the privacy policy."""
+    return render_template("privacy.html")

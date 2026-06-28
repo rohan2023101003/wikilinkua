@@ -146,6 +146,7 @@ export default function App() {
 
     const externalLinks = [
       { href: '/contribute', label: 'Contribute' },
+      { href: '/guide', label: 'Guide' },
       { href: '/login', label: 'Login' }
     ];
 

@@ -1,4 +1,4 @@
-"""WikiLinkua web application.
+﻿"""WikiLinkua web application.
 
 A standalone language-learning tool built on Wikidata Lexemes. This package is
 independent of Ordia: it ships its own templates, styles and routes.
@@ -36,12 +36,15 @@ def create_app():
         "auth.login_start",
         "auth.callback",
         "auth.logout",
+        "main.guide",
+        "main.docs_index",
+        "main.privacy",
         "static",
     }
 
     @app.before_request
     def require_login():
-        """Gate the whole app behind login — you must log in before using it."""
+        """Gate the whole app behind login - you must log in before using it."""
         if request.endpoint in PUBLIC_ENDPOINTS or request.endpoint is None:
             return None
         if not session.get("user"):

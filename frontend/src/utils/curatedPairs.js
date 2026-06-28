@@ -1,10 +1,10 @@
-// Curated famous false friends from false-friends.html
+﻿// Curated famous false friends from false-friends.html
 export const FF_CURATED = [
   // EN <-> ES
   { langs: ['en','es'], a: 'embarrassed',   b: 'embarazada',
     meaningA: 'feeling shame or self-consciousness',
     meaningB: 'pregnant',
-    note: 'A famous trap — the original sin of Spanish learners.' },
+    note: 'A famous trap - the original sin of Spanish learners.' },
   { langs: ['en','es'], a: 'library',       b: 'librería',
     meaningA: 'place that lends books',
     meaningB: 'bookstore (the library is *biblioteca*)' },
@@ -132,7 +132,7 @@ export const FF_CURATED = [
   { langs: ['en','pt'], a: 'push',          b: 'puxar',
     meaningA: 'press away from you',
     meaningB: 'to pull (toward you)',
-    note: 'On Portuguese doors, "puxe" means PULL — opposite of push!' },
+    note: 'On Portuguese doors, "puxe" means PULL - opposite of push!' },
   { langs: ['en','pt'], a: 'parents',       b: 'parentes',
     meaningA: 'mother and father',
     meaningB: 'relatives' },
@@ -140,7 +140,7 @@ export const FF_CURATED = [
     meaningA: 'information',
     meaningB: 'a date (calendar)' },
 
-  // ES <-> IT (extremely tricky — same-Romance trap)
+  // ES <-> IT (extremely tricky - same-Romance trap)
   { langs: ['es','it'], a: 'burro',         b: 'burro',
     meaningA: 'donkey',
     meaningB: 'butter',
@@ -203,7 +203,7 @@ export const FF_CURATED = [
   { langs: ['hi','ur'], a: 'अच्छा',          b: 'اچھا',
     meaningA: 'good (informal exclamation: I see)',
     meaningB: 'good (same root, slight register drift)',
-    note: 'Often considered the same word — register & script differ.' },
+    note: 'Often considered the same word - register & script differ.' },
 
   // EN <-> JA
   { langs: ['en','ja'], a: 'mansion',       b: 'マンション (manshon)',

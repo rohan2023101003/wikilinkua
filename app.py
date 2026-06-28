@@ -1,4 +1,4 @@
-"""WikiLinkua — standalone entrypoint.
+﻿"""WikiLinkua - standalone entrypoint.
 
 Run locally with:  python app.py   (or)   flask --app app run
 """

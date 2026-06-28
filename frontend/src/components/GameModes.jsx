@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { FlashcardExercise } from './Flashcards';
 import { FriendOrFauxExercise } from './FriendOrFaux';
 import { RecallExercise } from './Recall';
@@ -118,7 +118,7 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
         </div>
         <div style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.02em' }}>Lesson complete!</div>
         <div style={{ fontSize: '15px', color: '#54595d', marginTop: '8px', marginBottom: '24px' }}>
-          Nicely done — you've completed today's practice session.
+          Nicely done - you've completed today's practice session.
         </div>
 
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1px', background: '#c8ccd1', border: '1px solid #c8ccd1', borderRadius: '2px', overflow: 'hidden', marginBottom: '24px' }}>

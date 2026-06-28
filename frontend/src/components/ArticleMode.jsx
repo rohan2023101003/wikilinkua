@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { FlashcardExercise } from './Flashcards';
 import { LANGUAGES } from '../utils/sparql';
 
@@ -89,7 +89,7 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
                 .catch(() => [])
             )
           ),
-          // Pages with no interwiki links at all — guaranteed missing in all languages
+          // Pages with no interwiki links at all - guaranteed missing in all languages
           wikiApiFetch(langCode, {
             action: 'query', list: 'querypage', qppage: 'WithoutInterwiki', qplimit: '50',
           }).catch(() => null),
@@ -146,7 +146,7 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
           })
           .filter(c => sentenceCount(c.extract) >= MIN_SENTENCES);
 
-        // Filter WithoutInterwiki candidates — hasKnownLink is definitively false
+        // Filter WithoutInterwiki candidates - hasKnownLink is definitively false
         const noInterwikiFiltered = noInterwikiFetch
           .map(title => {
             const page = pageMap.get(title);
@@ -164,7 +164,7 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
 
         setRecommendations(combined);
       } catch (e) {
-        // Recommendations are best-effort — silent failure is fine
+        // Recommendations are best-effort - silent failure is fine
       } finally {
         setLoadingRecs(false);
       }
@@ -365,7 +365,7 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
                 No {toLang.name} version of this article exists yet.
               </p>
               <a href={cxUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', fontWeight: '600', color: '#3366cc', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                Translate it on Wikipedia ↗
+                Translate it on Wikipedia �-
               </a>
             </div>
           );
@@ -382,7 +382,7 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
             rel="noopener noreferrer"
             style={{ ...BTN_GHOST, textDecoration: 'none', display: 'inline-block' }}
           >
-            Full article ↗
+            Full article �-
           </a>
           <button onClick={handleMakeFlashcards} style={BTN_PRIMARY}>Make flashcards</button>
         </div>
@@ -397,7 +397,7 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
         <div style={{ maxWidth: '550px', margin: '40px auto', ...CARD, textAlign: 'center' }}>
           <h3 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '8px' }}>Lesson complete</h3>
           <p style={{ color: '#54595d', fontSize: '14px', marginBottom: '24px' }}>
-            {fcScore} / {fcWords.length} correct — from <em>{articleTitle}</em>
+            {fcScore} / {fcWords.length} correct - from <em>{articleTitle}</em>
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button onClick={() => { setFcIndex(0); setFcScore(0); setFcDone(false); }} style={BTN_PRIMARY}>Replay</button>

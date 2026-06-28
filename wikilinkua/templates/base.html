@@ -85,6 +85,7 @@
     <a class="wl-nav__brand" href="/">Wiki<span>Linkua</span></a>
     <a class="wl-nav__link {% block nav_home %}{% endblock %}" href="/">Home</a>
     <a class="wl-nav__link {% block nav_contribute %}{% endblock %}" href="/contribute">Contribute</a>
+    <a class="wl-nav__link {% block nav_guide %}{% endblock %}" href="/guide">Guide</a>
     <div class="wl-nav__divider"></div>
     {% if current_user %}
       <span class="wl-nav__user">{{ current_user.username }}</span>
@@ -112,9 +113,11 @@
 <footer class="wl-footer">
   Data from <a href="https://www.wikidata.org">Wikidata</a> &amp;
   <a href="https://commons.wikimedia.org">Wikimedia Commons</a>.
-  WikiLinkua &mdash; Wikimedia Hackathon 2026
+  WikiLinkua &middot; Wikimedia Hackathon 2026
   (<a href="https://phabricator.wikimedia.org/T425045">T425045</a>).
-  Apache-2.0.
+  <a href="https://github.com/rohan2023101003/wikilinkua" target="_blank" rel="noopener">GitHub</a>
+  &middot; <a href="https://github.com/rohan2023101003/wikilinkua/issues" target="_blank" rel="noopener">Report issues / feedback</a>
+  &middot; Apache-2.0.
 </footer>
 
 <script src="/static/js/app.js"></script>

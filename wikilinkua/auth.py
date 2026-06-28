@@ -1,13 +1,13 @@
-"""Authentication.
+﻿"""Authentication.
 
 Two modes, switched by the DEV_LOGIN config flag:
 
-* DEV_LOGIN=true  — a local "test user" login, no network call. Lets us build and
+* DEV_LOGIN=true  - a local "test user" login, no network call. Lets us build and
   demo every logged-in feature now, before the public OAuth consumer is approved.
-* DEV_LOGIN=false — the real Wikimedia OAuth 2.0 authorization-code flow. This is
+* DEV_LOGIN=false - the real Wikimedia OAuth 2.0 authorization-code flow. This is
   wired and ready; it starts working the moment the PUBLIC (6b) consumer is
   approved and the OAUTH_* env vars are set. (It cannot be tested with an
-  owner-only consumer — owner-only disables the interactive login flow.)
+  owner-only consumer - owner-only disables the interactive login flow.)
 
 We never store passwords. We only read the user's Wikimedia username + id.
 """
@@ -44,7 +44,7 @@ def login_start():
         flash("Logged in as a development test user.")
         return redirect(url_for("main.index"))
 
-    # Real Wikimedia OAuth 2.0 — authorization code flow.
+    # Real Wikimedia OAuth 2.0 - authorization code flow.
     state = secrets.token_urlsafe(24)
     session["oauth_state"] = state
     params = {

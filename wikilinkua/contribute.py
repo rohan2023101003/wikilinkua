@@ -1,4 +1,4 @@
-"""Contribute pronunciation audio to Wikimedia Commons.
+﻿"""Contribute pronunciation audio to Wikimedia Commons.
 
 In-app flow: the learner records a word in the browser, listens, and submits.
 The audio is uploaded to Wikimedia Commons *on the user's behalf* using their
@@ -6,7 +6,7 @@ OAuth token (so it counts as their own contribution), then can be linked to the
 Wikidata lexeme form via P443.
 
 Until the OAuth consumer with **upload** grants is approved, the upload step
-returns a clear "not enabled yet" message — recording and listening already work.
+returns a clear "not enabled yet" message - recording and listening already work.
 """
 
 import datetime
@@ -38,7 +38,7 @@ def contribute_audio():
             ok=False,
             message=("Uploading needs a real Wikimedia login. On the live site, "
                      "log in with Wikimedia first. (The local dev login can't "
-                     "upload — there's no real token.)"),
+                     "upload - there's no real token.)"),
         )
 
     audio = request.files.get("audio")
@@ -67,7 +67,7 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username, api_
     sess.headers.update({"Authorization": "Bearer " + token})
 
     # 1) Fetch a CSRF token. With an identity-only token (no edit/upload grant),
-    #    the API returns the anonymous token "+\\" — our signal that uploads
+    #    the API returns the anonymous token "+\\" - our signal that uploads
     #    aren't permitted yet.
     tok = sess.get(api_url, params={
         "action": "query", "meta": "tokens", "type": "csrf", "format": "json",
@@ -77,7 +77,7 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username, api_
         return {
             "ok": False,
             "message": ("Upload permission isn't granted yet. Your recording "
-                        "works — uploads go live once the Commons-upload OAuth "
+                        "works - uploads go live once the Commons-upload OAuth "
                         "consumer is approved and its keys are set."),
         }
 

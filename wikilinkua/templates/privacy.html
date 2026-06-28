@@ -1,0 +1,114 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Privacy - WikiLinkua{% endblock %}
+{% block nav_guide %}wl-nav__link--active{% endblock %}
+
+{% block styles %}
+.wl-privacy {
+  max-width: 900px;
+  margin: 40px auto 72px;
+}
+.wl-privacy h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+  color: #202122;
+}
+.wl-privacy .wl-lead {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #54595d;
+  margin: 0 0 24px;
+}
+.wl-privacy .wl-panel {
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: 4px;
+  padding: 24px 28px;
+  margin-bottom: 18px;
+}
+.wl-privacy h2 {
+  font-size: 1.2rem;
+  margin: 0 0 12px;
+  color: #202122;
+}
+.wl-privacy p, .wl-privacy li {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #202122;
+}
+.wl-privacy ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+}
+.wl-privacy .wl-note {
+  background: #f8f9fa;
+  border: 1px solid #c8ccd1;
+  border-radius: 2px;
+  padding: 14px 16px;
+  color: #54595d;
+}
+{% endblock %}
+
+{% block page_content %}
+<div class="wl-page">
+  <div class="wl-privacy">
+    <h1>WikiLinkua Privacy Policy</h1>
+    <p class="wl-lead">
+      This page summarizes what the app stores, which external services it uses, and what permissions certain features need.
+    </p>
+
+    <div class="wl-panel">
+      <h2>What we store</h2>
+      <ul>
+        <li>Selected known languages and target language</li>
+        <li>Word progress and phrase review state in the browser</li>
+        <li>Temporary session state for login and upload flows</li>
+        <li>Wikimedia username and id when login is enabled</li>
+      </ul>
+    </div>
+
+    <div class="wl-panel">
+      <h2>What we do not store</h2>
+      <ul>
+        <li>Passwords</li>
+        <li>Payment details</li>
+        <li>A central database of learning progress in the current code path</li>
+      </ul>
+    </div>
+
+    <div class="wl-panel">
+      <h2>External services</h2>
+      <ul>
+        <li>Wikidata Query Service</li>
+        <li>Tatoeba</li>
+        <li>Wikimedia MinT</li>
+        <li>Wikimedia Commons</li>
+        <li>Wikimedia OAuth</li>
+        <li>Wikipedia APIs</li>
+      </ul>
+    </div>
+
+    <div class="wl-panel">
+      <h2>Permissions</h2>
+      <ul>
+        <li>Microphone access for pronunciation recording</li>
+        <li>Login access for identity-aware features</li>
+        <li>Commons upload permission for publishing audio</li>
+        <li>Network access to the services above</li>
+      </ul>
+    </div>
+
+    <div class="wl-panel">
+      <h2>Retention and deletion</h2>
+      <p>
+        Local progress can be removed by clearing site data for the domain. If the project adds cross-device sync in the future, deletion and retention rules must be documented and enforced before launch.
+      </p>
+      <p class="wl-note">
+        This page is intentionally short because the current app does not yet have a central database; the main privacy risk today is third-party request exposure and browser-stored progress.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

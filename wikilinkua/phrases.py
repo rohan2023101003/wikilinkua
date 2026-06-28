@@ -1,4 +1,4 @@
-"""Phrases proxy.
+﻿"""Phrases proxy.
 
 The browser can query Wikidata (WDQS) directly, but Tatoeba's API isn't reliably
 CORS-enabled, so we proxy it here. Given a target language + a word, return
@@ -89,7 +89,7 @@ def phrases():
     return jsonify(ok=True, phrases=out)
 
 
-# cxserver MinT endpoint. Note: the text MUST be wrapped in an HTML tag — sending
+# cxserver MinT endpoint. Note: the text MUST be wrapped in an HTML tag - sending
 # plain text returns an empty translation.
 CXSERVER_MT = "https://cxserver.wikimedia.org/v2/translate/{src}/{dst}/MinT"
 

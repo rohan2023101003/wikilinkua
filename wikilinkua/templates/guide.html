@@ -1,0 +1,156 @@
+﻿{% extends "base.html" %}
+
+{% block title %}User guide - WikiLinkua{% endblock %}
+{% block nav_guide %}wl-nav__link--active{% endblock %}
+
+{% block styles %}
+.wl-guide {
+  max-width: 900px;
+  margin: 40px auto 72px;
+}
+.wl-guide h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+  color: #202122;
+}
+.wl-guide .wl-lead {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #54595d;
+  margin: 0 0 24px;
+}
+.wl-guide .wl-panel {
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: 4px;
+  padding: 24px 28px;
+  margin-bottom: 18px;
+}
+.wl-guide h2 {
+  font-size: 1.25rem;
+  margin: 0 0 12px;
+  color: #202122;
+}
+.wl-guide h3 {
+  font-size: 1.02rem;
+  margin: 18px 0 10px;
+  color: #202122;
+}
+.wl-guide p, .wl-guide li {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #202122;
+}
+.wl-guide ul, .wl-guide ol {
+  padding-left: 20px;
+  margin: 10px 0 0;
+}
+.wl-guide .wl-tagline {
+  font-size: 0.85rem;
+  color: #72777d;
+  margin-top: 10px;
+}
+.wl-guide .wl-note {
+  background: #f8f9fa;
+  border: 1px solid #c8ccd1;
+  border-radius: 2px;
+  padding: 14px 16px;
+  color: #54595d;
+}
+{% endblock %}
+
+{% block page_content %}
+<div class="wl-page">
+  <div class="wl-guide">
+    <h1>WikiLinkua User Guide</h1>
+    <p class="wl-lead">
+      Learn a new language through the languages you already know. This page is a
+      quick in-site guide.
+    </p>
+
+    <div class="wl-panel">
+      <h2>Documentation hub</h2>
+      <ul>
+        <li><a href="/docs">Docs index</a></li>
+        <li><a href="/privacy">Privacy policy</a></li>
+        <li><a href="https://github.com/rohan2023101003/wikilinkua" target="_blank" rel="noopener">Project on GitHub</a></li>
+        <li><a href="https://github.com/rohan2023101003/wikilinkua/issues" target="_blank" rel="noopener">Report issues / give feedback</a></li>
+      </ul>
+    </div>
+
+    <div class="wl-panel">
+      <h2>How to start</h2>
+      <ol>
+        <li>Pick the languages you already know.</li>
+        <li>Pick the target language you want to learn.</li>
+        <li>Use Home for mixed practice, Words for browsing, Phrases for sentence practice, and Progress to track your review state.</li>
+      </ol>
+      <p class="wl-tagline">Your progress is stored in the browser on the device you are using.</p>
+    </div>
+
+    <div class="wl-panel">
+      <h2>What the main labels mean</h2>
+      <ul>
+        <li><strong>New / unseen</strong>: you have not answered the word yet.</li>
+        <li><strong>Learning</strong>: you have started practicing the word, but it is not mastered yet.</li>
+        <li><strong>Known</strong>: the word has crossed the mastery threshold.</li>
+        <li><strong>Due for review</strong>: the word is ready to come back into practice.</li>
+      </ul>
+      <p class="wl-note">A single correct answer does not usually make a word “known”; it normally moves the word up one step at a time.</p>
+    </div>
+
+    <div class="wl-panel">
+      <h2>How phrases work</h2>
+      <p>
+        Phrases are built from words you already know or are learning. When available,
+        the app prefers human translations from Tatoeba; if none are available, it falls back to Wikimedia MinT.
+      </p>
+      <p>
+        Phrase review is separate from word review. That means a sentence can come back later even after you have seen it once.
+      </p>
+    </div>
+
+    <div class="wl-panel">
+      <h2>Privacy and access</h2>
+      <ul>
+        <li>No password is stored by WikiLinkua.</li>
+        <li>Real login uses Wikimedia OAuth and only reads your Wikimedia identity.</li>
+        <li>Pronunciation uploads need Commons upload permission.</li>
+        <li>Learning progress currently stays in your browser unless a future sync layer is added.</li>
+      </ul>
+    </div>
+
+    <div class="wl-panel">
+      <h2>Third-party services</h2>
+      <ul>
+        <li>Wikidata Query Service</li>
+        <li>Tatoeba</li>
+        <li>Wikimedia MinT</li>
+        <li>Wikimedia Commons</li>
+        <li>Wikipedia APIs</li>
+        <li>Wikimedia OAuth</li>
+      </ul>
+    </div>
+
+    <div class="wl-panel">
+      <h2>UI style</h2>
+      <p>
+        The UI follows Wikimedia Codex style: blue primary actions, neutral gray cards and borders, clear spacing, and responsive layouts.
+      </p>
+    </div>
+
+    <div class="wl-panel">
+      <h2>Future scope</h2>
+      <ul>
+        <li>Cross-device progress sync</li>
+        <li>Better explanations in the app</li>
+        <li>More detailed progress and streak views</li>
+        <li>Richer pronunciation practice</li>
+        <li>More language coverage and content sources</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

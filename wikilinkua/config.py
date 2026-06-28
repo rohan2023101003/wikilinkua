@@ -1,4 +1,4 @@
-"""Configuration.
+﻿"""Configuration.
 
 The only place environment-specific values live. Everything that depends on
 deployment/access is read from an environment variable so it can be changed
@@ -34,7 +34,7 @@ class Config:
         "OAUTH_CALLBACK_URL", "http://localhost:5000/oauth-callback"
     )
 
-    # MediaWiki OAuth 2.0 REST endpoints (on meta) — do not change.
+    # MediaWiki OAuth 2.0 REST endpoints (on meta) - do not change.
     OAUTH_AUTHORIZE_URL = "https://meta.wikimedia.org/w/rest.php/oauth2/authorize"
     OAUTH_TOKEN_URL = "https://meta.wikimedia.org/w/rest.php/oauth2/access_token"
     OAUTH_PROFILE_URL = "https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile"
@@ -44,7 +44,7 @@ class Config:
         "https://meta.wikimedia.org/wiki/Special:CreateAccount"
     )
 
-    # Wikimedia Commons API — target for in-app pronunciation uploads.
+    # Wikimedia Commons API - target for in-app pronunciation uploads.
     COMMONS_API_URL = os.environ.get(
         "COMMONS_API_URL", "https://commons.wikimedia.org/w/api.php"
     )

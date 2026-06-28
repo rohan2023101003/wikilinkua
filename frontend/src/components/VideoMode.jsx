@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FlashcardExercise } from './Flashcards';
 import { getLang, fetchVideosInLanguage, fetchVideoThumbnails, checkSubtitleTracks, fetchSubtitleRaw, srtToVttBlob, extractLemmas } from '../utils/video';
 
@@ -357,7 +357,7 @@ export default function VideoMode({ profile, words, onAnswerWord, onNavigate }) 
       return (
         <div style={{ maxWidth: '550px', margin: '40px auto', ...CARD, textAlign: 'center' }}>
           <h3 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '8px' }}>Lesson complete</h3>
-          <p style={{ color: '#54595d', fontSize: '14px', marginBottom: '24px' }}>{fcScore} / {fcWords.length} correct — from <em>{selected?.name}</em></p>
+          <p style={{ color: '#54595d', fontSize: '14px', marginBottom: '24px' }}>{fcScore} / {fcWords.length} correct - from <em>{selected?.name}</em></p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button onClick={() => { setFcIndex(0); setFcScore(0); setFcDone(false); }} style={BTN_PRIMARY}>Replay</button>
             <button onClick={() => setPhase('watch')} style={BTN_GHOST}>Back to video</button>

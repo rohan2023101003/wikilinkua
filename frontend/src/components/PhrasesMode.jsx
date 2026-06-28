@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { LANGUAGES } from '../utils/sparql';
 import { playAudio } from '../utils/audio';
 import {
@@ -61,7 +61,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
           setReveal(false);
         }
       } catch {
-        if (alive) setError('Could not load phrases. The data service may be busy — please retry.');
+        if (alive) setError('Could not load phrases. The data service may be busy - please retry.');
       } finally {
         if (alive) setLoading(false);
       }
@@ -144,7 +144,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
         <h3 style={{ marginBottom: '12px', fontSize: '20px', fontWeight: '700' }}>No phrases to show yet</h3>
         <p style={{ color: '#54595d', marginBottom: '24px', fontSize: '14px', lineHeight: '1.5' }}>
           {knownLemmas.length === 0
-            ? 'Learn a few words first (Flashcards), then come back — we’ll build phrases from the words you know.'
+            ? 'Learn a few words first (Flashcards), then come back - we’ll build phrases from the words you know.'
             : 'We couldn’t find sentences for your words in this language pair yet. Try learning more words, or a better-covered target language.'}
         </p>
         <button className="cdx-button"
@@ -160,7 +160,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
   if (index >= phrases.length) {
     return card(
       <div style={{ textAlign: 'center', padding: '16px' }}>
-        <h3 style={{ marginBottom: '12px', fontSize: '22px', fontWeight: '700' }}>Nice — that’s all for now! 🎉</h3>
+        <h3 style={{ marginBottom: '12px', fontSize: '22px', fontWeight: '700' }}>Nice - that’s all for now! 🎉</h3>
         <p style={{ color: '#54595d', marginBottom: '24px', fontSize: '14px', lineHeight: '1.5' }}>
           You went through {phrases.length} phrase{phrases.length === 1 ? '' : 's'}.
           We’ll bring some back for review as your memory needs them.

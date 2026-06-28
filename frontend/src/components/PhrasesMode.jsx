@@ -106,7 +106,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
   };
 
   const card = (children) => (
-    <div className="cdx-card" style={{
+    <div className="cdx-card phrases-card" style={{
       maxWidth: '650px', margin: '20px auto', padding: '28px',
       border: '1px solid #c8ccd1', borderRadius: '2px', background: '#fff',
       color: '#202122',
@@ -189,7 +189,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
 
   return (
     <div>
-      <div style={{ maxWidth: '650px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px', marginBottom: '12px' }}>
+      <div className="phrases-topbar" style={{ maxWidth: '650px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px', marginBottom: '12px' }}>
         <span style={{ fontSize: '13px', color: '#54595d', fontWeight: '500' }}>Phrase {index + 1} of {phrases.length}</span>
         <span style={{ 
           fontSize: '12px', 
@@ -216,7 +216,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
               : <span key={i}>{s.text}</span>)}
           </p>
 
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div className="phrases-audio-row" style={{ textAlign: 'center', marginBottom: '24px' }}>
             <button 
               className="cdx-button" 
               onClick={hear} 
@@ -239,7 +239,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
             </button>
           </div>
 
-          <div style={{ borderTop: '1px solid #c8ccd1', paddingTop: '20px', textAlign: 'center' }}>
+          <div className="phrases-translation-row" style={{ borderTop: '1px solid #c8ccd1', paddingTop: '20px', textAlign: 'center' }}>
             {reveal ? (
               <div style={{ minHeight: '60px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                 {current.translation ? (
@@ -269,7 +269,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
           </div>
 
           {reveal && (
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px' }}>
+            <div className="phrases-grade-row" style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px' }}>
               <button 
                 className="cdx-button"
                 style={{ padding: '10px 20px', cursor: 'pointer', border: '1px solid #bf3c2c', color: '#bf3c2c', background: '#fff', borderRadius: '2px', fontWeight: '600' }}

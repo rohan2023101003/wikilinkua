@@ -50,3 +50,45 @@ body {
 .cdx-card {
   align-items: stretch !important;
 }
+
+.cdx-card.phrases-card {
+  display: block !important;
+  max-width: 650px !important;
+  margin: 20px auto !important;
+  box-sizing: border-box;
+}
+
+.cdx-card.phrases-card .cdx-button {
+  width: auto;
+  max-width: none;
+}
+
+.phrases-topbar {
+  gap: 10px;
+}
+
+@media (max-width: 800px) {
+  .cdx-card.phrases-card {
+    margin: 12px auto !important;
+    padding: 18px !important;
+  }
+
+  .phrases-topbar {
+    flex-direction: column;
+    align-items: flex-start !important;
+    padding: 0 4px !important;
+  }
+
+  .phrases-audio-row .cdx-button,
+  .phrases-translation-row .cdx-button {
+    width: 100%;
+  }
+
+  .phrases-grade-row {
+    flex-direction: column;
+  }
+
+  .phrases-grade-row .cdx-button {
+    width: 100%;
+  }
+}

@@ -62,6 +62,49 @@
     }
   }
 
+  // Tell the user up front whether this session can upload at all, instead of
+  // letting them record a clip and only then hit a permission error.
+  (function checkUploadPermission() {
+    fetch("/api/upload-check", { headers: { Accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || d.canUpload) return;
+        var box = document.createElement("div");
+        box.style.cssText =
+          "margin:0 0 16px;padding:12px 14px;border-radius:2px;font-size:0.88rem;" +
+          "line-height:1.5;background:#fef6e7;border:1px solid #f2d9a0;color:#54595d";
+        var msg = document.createElement("div");
+        msg.textContent = d.reason || "Uploading is not available for this session.";
+        box.appendChild(msg);
+
+        if (d.loggedIn && !d.devLogin) {
+          var form = document.createElement("form");
+          form.method = "post";
+          form.action = "/logout";
+          form.style.marginTop = "8px";
+          var btn = document.createElement("button");
+          btn.type = "submit";
+          btn.textContent = "Log out and log in again";
+          btn.style.cssText =
+            "background:#3366cc;color:#fff;border:none;border-radius:2px;" +
+            "padding:6px 12px;font-weight:600;cursor:pointer;font-family:inherit";
+          form.appendChild(btn);
+          box.appendChild(form);
+        }
+
+        var detail = document.createElement("div");
+        detail.style.cssText = "margin-top:8px;font-size:0.78rem;color:#72777d";
+        detail.textContent = "consumer " + (d.clientId || "?")
+          + (d.scopes ? " · scopes: " + d.scopes : "")
+          + (d.apiError ? " · API: " + d.apiError : "");
+        box.appendChild(detail);
+
+        var card = document.querySelector(".wl-card");
+        if (card && card.parentNode) card.parentNode.insertBefore(box, card);
+      })
+      .catch(function () { /* diagnostics are best-effort */ });
+  })();
+
   function setStatus(msg, kind) {
     $status.textContent = msg || "";
     $status.style.color = kind === "danger" ? "#d73333" : kind === "success" ? "#14866d" : "#54595d";

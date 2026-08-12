@@ -34,6 +34,68 @@ def contribute_page():
     )
 
 
+@bp.route("/api/upload-check")
+def upload_check():
+    """Report whether THIS session can actually upload, and why not.
+
+    Asks Commons what rights the session's token really carries, so a failure
+    names its own cause instead of surfacing as a bare API error after the user
+    has already recorded a clip.
+    """
+    token = session.get("oauth_token")
+    client_id = current_app.config.get("OAUTH_CLIENT_ID") or ""
+    info = {
+        "loggedIn": bool(session.get("user")),
+        "devLogin": bool(current_app.config["DEV_LOGIN"]),
+        # The client id is public (it appears in the authorize URL); the secret is not.
+        "clientId": (client_id[:8] + "…") if client_id else "(not set)",
+        "scopes": current_app.config.get("OAUTH_SCOPES", ""),
+        "canUpload": False,
+        "reason": "",
+    }
+
+    if not token:
+        info["reason"] = (
+            "This session has no Wikimedia token. The development login cannot upload - "
+            "log in with a real Wikimedia account."
+        )
+        return jsonify(info)
+
+    import requests
+    try:
+        resp = requests.get(
+            current_app.config["COMMONS_API_URL"],
+            params={"action": "query", "meta": "userinfo", "uiprop": "rights",
+                    "format": "json"},
+            headers={"Authorization": "Bearer " + token},
+            timeout=20,
+        ).json()
+    except Exception as exc:  # noqa: BLE001
+        info["reason"] = "Could not reach Commons: " + str(exc)
+        return jsonify(info)
+
+    err = resp.get("error", {})
+    if err:
+        info["apiError"] = err.get("code", "")
+        info["reason"] = (
+            "Commons rejected this session's token (" + err.get("code", "error") + "). "
+            "Your login was almost certainly created before the current OAuth "
+            "permissions were granted - log out and log in again to get a fresh token."
+        )
+        return jsonify(info)
+
+    userinfo = resp.get("query", {}).get("userinfo", {})
+    rights = set(userinfo.get("rights") or [])
+    info["commonsUser"] = userinfo.get("name")
+    info["canUpload"] = "upload" in rights
+    if not info["canUpload"]:
+        info["reason"] = (
+            "Your Wikimedia session is valid but carries no upload right. Log out and log "
+            "in again so the new permissions are applied."
+        )
+    return jsonify(info)
+
+
 @bp.route("/api/contribute-audio", methods=["POST"])
 def contribute_audio():
     """Receive a recorded clip and upload it to Commons (when permitted)."""

@@ -36,6 +36,24 @@ export function lexemeUrl(lexemeId) {
   return 'https://www.wikidata.org/wiki/Lexeme:' + lexemeId;
 }
 
+/**
+ * Wrap a WHERE body into a list query that returns ONE ROW PER LEXEME.
+ *
+ * Without the GROUP BY, any pattern touching senses or forms multiplies rows:
+ * French "fond" (L10042) has six senses, so it came back six times and ate six
+ * of the 25 example slots. Counting queries already use COUNT(DISTINCT ?lex);
+ * the example lists must be just as strict.
+ *
+ * The body must bind `?lex` and `?lemma_`.
+ */
+function oneRowPerLexeme(where, limit) {
+  return `SELECT ?lex (SAMPLE(?lemma_) AS ?lemma) WHERE {
+${where}
+}
+GROUP BY ?lex
+LIMIT ${limit}`;
+}
+
 // ---------------------------------------------------------------- the catalogue
 
 /**
@@ -59,11 +77,9 @@ export const GAP_TASKS = [
       ]);
       return Math.max(0, total - withSense);
     },
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma .
-  FILTER NOT EXISTS { ?lex ontolex:sense [] }
-} LIMIT ${limit}`,
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ .
+  FILTER NOT EXISTS { ?lex ontolex:sense [] }`, limit),
   },
   {
     id: 'sense-no-concept',
@@ -75,12 +91,10 @@ export const GAP_TASKS = [
   ?lex dct:language wd:${qid} ; ontolex:sense ?s .
   FILTER NOT EXISTS { ?s wdt:P5137 [] }
 }`),
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma ;
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ ;
        ontolex:sense ?s .
-  FILTER NOT EXISTS { ?s wdt:P5137 [] }
-} LIMIT ${limit}`,
+  FILTER NOT EXISTS { ?s wdt:P5137 [] }`, limit),
   },
   {
     id: 'no-derivation',
@@ -94,12 +108,10 @@ export const GAP_TASKS = [
   ?lex dct:language wd:${qid} ; ontolex:sense/wdt:P5137 [] .
   FILTER NOT EXISTS { ?lex wdt:P5191 [] }
 }`),
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma ;
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ ;
        ontolex:sense/wdt:P5137 [] .
-  FILTER NOT EXISTS { ?lex wdt:P5191 [] }
-} LIMIT ${limit}`,
+  FILTER NOT EXISTS { ?lex wdt:P5191 [] }`, limit),
   },
   {
     id: 'no-audio',
@@ -112,12 +124,10 @@ export const GAP_TASKS = [
   ?lex dct:language wd:${qid} .
   FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P443 [] }
 }`),
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma ;
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ ;
        ontolex:sense/wdt:P5137 [] .
-  FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P443 [] }
-} LIMIT ${limit}`,
+  FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P443 [] }`, limit),
   },
   {
     id: 'no-ipa',
@@ -129,12 +139,10 @@ export const GAP_TASKS = [
   ?lex dct:language wd:${qid} .
   FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P898 [] }
 }`),
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma ;
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ ;
        ontolex:sense/wdt:P5137 [] .
-  FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P898 [] }
-} LIMIT ${limit}`,
+  FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P898 [] }`, limit),
   },
   {
     id: 'no-usage-example',
@@ -146,12 +154,10 @@ export const GAP_TASKS = [
   ?lex dct:language wd:${qid} ; ontolex:sense ?s .
   FILTER NOT EXISTS { ?s wdt:P5831 [] }
 }`),
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma ;
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ ;
        ontolex:sense ?s .
-  FILTER NOT EXISTS { ?s wdt:P5831 [] }
-} LIMIT ${limit}`,
+  FILTER NOT EXISTS { ?s wdt:P5831 [] }`, limit),
   },
   {
     id: 'nouns-no-gender',
@@ -165,12 +171,10 @@ export const GAP_TASKS = [
   ?lex dct:language wd:${qid} ; wikibase:lexicalCategory wd:Q1084 .
   FILTER NOT EXISTS { ?lex wdt:P5185 [] }
 }`),
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma ;
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ ;
        wikibase:lexicalCategory wd:Q1084 .
-  FILTER NOT EXISTS { ?lex wdt:P5185 [] }
-} LIMIT ${limit}`,
+  FILTER NOT EXISTS { ?lex wdt:P5185 [] }`, limit),
   },
   {
     id: 'suspicious-gender',
@@ -184,11 +188,9 @@ export const GAP_TASKS = [
     getCount: (qid) => count(`SELECT (COUNT(DISTINCT ?lex) AS ?n) WHERE {
   ?lex dct:language wd:${qid} ; wdt:P5185 [] .
 }`),
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma ;
-       wdt:P5185 [] .
-} LIMIT ${limit}`,
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ ;
+       wdt:P5185 [] .`, limit),
   },
   {
     id: 'no-forms',
@@ -200,11 +202,9 @@ export const GAP_TASKS = [
   ?lex dct:language wd:${qid} .
   FILTER NOT EXISTS { ?lex ontolex:lexicalForm [] }
 }`),
-    listQuery: (qid, limit = 25) => `SELECT ?lex ?lemma WHERE {
-  ?lex dct:language wd:${qid} ;
-       wikibase:lemma ?lemma .
-  FILTER NOT EXISTS { ?lex ontolex:lexicalForm [] }
-} LIMIT ${limit}`,
+    listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
+       wikibase:lemma ?lemma_ .
+  FILTER NOT EXISTS { ?lex ontolex:lexicalForm [] }`, limit),
   },
 ];
 

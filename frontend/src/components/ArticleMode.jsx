@@ -68,7 +68,9 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
   // Load recommendations once per target language when words are ready
   useEffect(() => {
     if (!words.length) return;
-    const key = profile.targetLang;
+    // Key on the whole pair: changing the languages you know must refresh the
+    // recommendations too, not just changing the target.
+    const key = [...(profile.knownLangs || [])].sort().join('+') + '>' + profile.targetLang;
     if (loadedForRef.current === key) return;
     loadedForRef.current = key;
 

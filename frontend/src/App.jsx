@@ -17,12 +17,14 @@ import { MatchPairs } from './components/MatchPairs';
 
 import { loadAndNormalizeWords } from './utils/sparql';
 import { updateLeitnerProgress } from './utils/srs';
-
-const STORAGE_KEY = 'wikilinkua_progress';
+import {
+  getActiveProfile, setActiveProfile, getDeck, saveWordProgress, profileKey,
+} from './utils/storage';
 
 export default function App() {
   const [profile, setProfile] = useState(null);
   const [progress, setProgress] = useState({ words: {} });
+  const [account, setAccount] = useState(null);
   const [words, setWords] = useState([]);
   const [totalTargetMapped, setTotalTargetMapped] = useState(0);
   const [initialWordsFilter, setInitialWordsFilter] = useState('All');
@@ -36,26 +38,26 @@ export default function App() {
     return 'game-modes';
   });
 
-  // 1. Initial load of profile & progress from localStorage
+  // 1. Initial load of the active profile + that pair's deck from localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.profile && parsed.profile.knownLangs && parsed.profile.targetLang) {
-          setProfile(parsed.profile);
-          setProgress({ words: parsed.words || {} });
-          setView('game-modes');
-        } else {
-          setView('onboarding');
-        }
-      } else {
-        setView('onboarding');
-      }
-    } catch (e) {
-      console.error("Failed to load progress from localStorage:", e);
+    const stored = getActiveProfile();
+    if (stored) {
+      setProfile(stored);
+      setProgress({ words: getDeck(stored).words || {} });
+      setView('game-modes');
+    } else {
       setView('onboarding');
     }
+  }, []);
+
+  // 1b. Who is logged in (drives the Login / Log out control in the nav)
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/me', { headers: { Accept: 'application/json' } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (alive && data) setAccount(data); })
+      .catch(() => { /* nav just falls back to the Login link */ });
+    return () => { alive = false; };
   }, []);
 
   // 2. Load word data from Wikidata whenever profile changes
@@ -66,6 +68,9 @@ export default function App() {
     const fetchWordsData = async () => {
       setLoading(true);
       setError(null);
+      // Never let the previous pair's words linger while the new pair loads.
+      setWords([]);
+      setTotalTargetMapped(0);
       try {
         const result = await loadAndNormalizeWords(profile.knownLangs, profile.targetLang);
         if (isCurrent) {
@@ -91,14 +96,14 @@ export default function App() {
     };
   }, [profile]);
 
-  // Handle profile save
+  // Handle profile save. Progress lives per language pair, so switching pairs
+  // swaps in that pair's own deck (a brand-new pair correctly starts at 0%)
+  // and switching back later restores the progress untouched.
   const handleSaveProfile = (newProfile) => {
-    setProfile(newProfile);
-    const newProgress = {
-      profile: newProfile,
-      words: progress.words || {}
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newProgress));
+    const samePair = profileKey(newProfile) === profileKey(profile);
+    const deck = setActiveProfile(newProfile);
+    setProgress({ words: deck.words || {} });
+    setProfile(samePair ? profile : newProfile);
     setView('game-modes');
   };
 
@@ -111,15 +116,18 @@ export default function App() {
 
     setProgress(currentProgress => {
       const updated = updateLeitnerProgress(currentProgress, lexemeId, correct);
-      
-      const fullProgress = {
-        profile,
-        words: updated.words
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(fullProgress));
-      
+      saveWordProgress(profile, updated.words);
       return updated;
     });
+  };
+
+  // /logout is POST-only (it changes state), so submit a real form.
+  const handleLogout = () => {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/logout';
+    document.body.appendChild(form);
+    form.submit();
   };
 
   const handleNavigate = (newView, opt = {}) => {
@@ -146,8 +154,7 @@ export default function App() {
 
     const externalLinks = [
       { href: '/contribute', label: 'Contribute' },
-      { href: '/guide', label: 'Guide' },
-      { href: '/login', label: 'Login' }
+      { href: '/guide', label: 'Guide' }
     ];
 
     const activeGameViews = ['flashcards', 'friend-or-faux', 'recall', 'reverse-recall', 'odd-one-out', 'match-pairs'];
@@ -222,6 +229,21 @@ export default function App() {
                 {link.label}
               </a>
             ))}
+            {account && account.loggedIn ? (
+              <>
+                <span
+                  title={account.devLogin ? 'Development test user' : 'Logged in with Wikimedia'}
+                  style={{ fontSize: '0.9rem', color: '#54595d', padding: '0 4px 0 8px' }}
+                >
+                  {account.username}
+                </span>
+                <button onClick={handleLogout} style={linkStyle}>
+                  Log out
+                </button>
+              </>
+            ) : (
+              <a href="/login" style={linkStyle}>Login</a>
+            )}
           </div>
         </div>
       </nav>
@@ -239,7 +261,7 @@ export default function App() {
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <div className="cdx-spinner" style={{ margin: '0 auto 20px auto', width: '48px', height: '48px', border: '4px solid #c8ccd1', borderTop: '4px solid #3366cc', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           <h3 style={{ fontSize: '1.25rem', color: '#202122', marginBottom: '8px' }}>Querying Wikidata...</h3>
-          <p style={{ color: '#54595d', fontSize: '0.95rem' }}>Fetching lexeme definitions and computing phonetic/cognate matches.</p>
+          <p style={{ color: '#54595d', fontSize: '0.95rem' }}>Fetching lexemes, then tracing derivation chains to tell real cognates from words that merely share a meaning.</p>
           <style>{`
             @keyframes spin {
               0% { transform: rotate(0deg); }

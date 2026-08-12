@@ -8,6 +8,24 @@
   var mediaRecorder = null;
   var chunks = [];
   var audioBlob = null;
+  var audioExt = "webm";
+
+  // Commons accepts ogg/opus and webm; pick whichever this browser can record.
+  var RECORD_TYPES = [
+    { mime: "audio/ogg;codecs=opus", ext: "ogg" },
+    { mime: "audio/webm;codecs=opus", ext: "webm" },
+    { mime: "audio/webm", ext: "webm" }
+  ];
+
+  function pickRecordType() {
+    for (var i = 0; i < RECORD_TYPES.length; i++) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported &&
+          MediaRecorder.isTypeSupported(RECORD_TYPES[i].mime)) {
+        return RECORD_TYPES[i];
+      }
+    }
+    return { mime: "", ext: "webm" };   // let the browser choose its default
+  }
 
   var $start = document.getElementById("rec-start");
   var $stop = document.getElementById("rec-stop");
@@ -21,11 +39,18 @@
   var $word = document.getElementById("rec-word");
 
   // Prefill language from URL param, or fall back to the learner's target language.
+  // The app stores state under wikilinkua_state_v2; wikilinkua_progress is the
+  // pre-v2 format, still read here for browsers that haven't migrated yet.
   var prefillQid = window.WL_PREFILL && window.WL_PREFILL.qid;
   if (!prefillQid) {
     try {
-      var stored = JSON.parse(localStorage.getItem("wikilinkua_progress") || "{}");
-      prefillQid = stored.profile && stored.profile.targetLang;
+      var state = JSON.parse(localStorage.getItem("wikilinkua_state_v2") || "null");
+      if (state && state.activeProfile) {
+        prefillQid = state.activeProfile.targetLang;
+      } else {
+        var legacy = JSON.parse(localStorage.getItem("wikilinkua_progress") || "{}");
+        prefillQid = legacy.profile && legacy.profile.targetLang;
+      }
     } catch (e) {}
   }
   if (prefillQid) {
@@ -50,12 +75,16 @@
     try {
       var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       chunks = [];
-      mediaRecorder = new MediaRecorder(stream);
+      var recordType = pickRecordType();
+      audioExt = recordType.ext;
+      mediaRecorder = recordType.mime
+        ? new MediaRecorder(stream, { mimeType: recordType.mime })
+        : new MediaRecorder(stream);
       mediaRecorder.ondataavailable = function (e) {
         if (e.data.size > 0) chunks.push(e.data);
       };
       mediaRecorder.onstop = function () {
-        audioBlob = new Blob(chunks, { type: "audio/webm" });
+        audioBlob = new Blob(chunks, { type: mediaRecorder.mimeType || recordType.mime || "audio/webm" });
         $audio.src = URL.createObjectURL(audioBlob);
         $playback.style.display = "block";
         $submit.disabled = false;
@@ -93,7 +122,7 @@
 
     var parts = $lang.value.split("|");
     var fd = new FormData();
-    fd.append("audio", audioBlob, "clip.webm");
+    fd.append("audio", audioBlob, "clip." + audioExt);
     fd.append("word", word);
     fd.append("qid", parts[0]);
     fd.append("code", parts[1]);

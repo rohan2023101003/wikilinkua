@@ -324,7 +324,7 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate, t
     { 
       id: 'odd-one-out', 
       title: 'Odd one out', 
-      subtitle: 'Break the cognate set', 
+      subtitle: 'Spot the word with no shared history', 
       bg: '#f8f9fa', 
       color: '#54595d',
       icon: (

@@ -48,7 +48,7 @@ The React app owns the learning experience:
 - progress dashboards,
 - video and article-based learning.
 
-The app stores profile and progress in `localStorage` under `wikilinkua_progress` and `wikilinkua_words_cache_v4`.
+The app stores profile and progress in `localStorage` under `wikilinkua_state_v2` and `wikilinkua_words_cache_v6`.
 
 ## Key code paths
 
@@ -64,9 +64,36 @@ The app stores profile and progress in `localStorage` under `wikilinkua_progress
 - The dev flow does not contact Wikimedia and exists only for local/demo use.
 - The real flow stores the OAuth access token in the Flask session for Commons upload.
 
+### Relationship model (read before touching word data)
+
+`frontend/src/utils/relations.js` defines the only vocabulary the UI may use to
+describe how two words relate. The rule it enforces: **a connection in Wikidata
+is not automatically a cognate.**
+
+- Etymological claims (`cognate`, `borrowed_from`, `source_of`) may only come
+  from **P5191 "derived from lexeme"**. `cognate` specifically requires the two
+  lexemes to reach a *common ancestor* by walking P5191 upwards from both sides;
+  a direct P5191 edge between them is a borrowing, not a cognate pair.
+- Semantic links (`same_meaning` from P5137, `translation` from P5972,
+  `related_meaning` from P5973/P5974) never imply shared history. A Malayalam
+  word whose sense points at the same concept item as an English word is a
+  translation equivalent, nothing more.
+- `looks_alike` (form/IPA similarity) is a *warning*, not a relationship, and is
+  suppressed when a real etymological link already explains the resemblance.
+
+`buildRelations()` assembles the typed list, `primaryRelation()` picks what a
+word leads with, and `explainRelation()` produces the sentence shown to the
+learner. Add new evidence by extending the taxonomy, never by widening what
+`cognate` means.
+
+Acquisition lives in `sparql.js`:
+`fetchDerivationEdges()` (one query per language, three hops - a single UNION
+across languages took ~19s and the fully server-side transitive join 502s),
+`buildAncestorMap()`, then `classifyDerivation()` does the join in the browser.
+
 ### Learning data
 
-- `frontend/src/utils/sparql.js` queries Wikidata Query Service for bridge words, cognates, false friends, and article/video seeds.
+- `frontend/src/utils/sparql.js` queries Wikidata Query Service for bridge words, derivation ancestry, false friends, and article/video seeds.
 - `frontend/src/utils/srs.js` implements the Leitner spaced-repetition state for words.
 - `frontend/src/utils/phrases.js` implements phrase fetching, phrase ranking, MinT translation fallback, and phrase-level repetition.
 - `frontend/src/utils/video.js` and `frontend/src/components/VideoMode.jsx` handle Commons video discovery and subtitle-driven flashcards.
@@ -80,9 +107,13 @@ The app stores profile and progress in `localStorage` under `wikilinkua_progress
 
 ### Browser localStorage
 
-- `wikilinkua_progress`: profile + word progress.
-- `wikilinkua_phrases`: phrase SRS history.
-- `wikilinkua_words_cache_v4`: cached bridge-word data.
+- `wikilinkua_state_v2`: the active profile plus one **deck per language pair**
+  (word SRS + phrase SRS), so progress follows the pair, not the browser.
+  Implemented in `frontend/src/utils/storage.js`; the pre-v2 keys
+  `wikilinkua_progress` / `wikilinkua_phrases` are migrated on first read.
+- `wikilinkua_words_cache_v6`: cached word data including typed relations, one
+  slot per pair (24h TTL, oldest slot evicted when storage is full). Bump the
+  version whenever the word shape changes, or stale caches will be replayed.
 
 ### Server session
 
@@ -101,6 +132,19 @@ There is no project database in the current code path.
 - Wikipedia APIs for article mode.
 
 These are all external dependencies and should be documented explicitly in deployment and privacy notes.
+
+### Language QIDs are not obvious
+
+Some languages hold no lexemes at all under the QID you would expect, so the app
+maps them (`LANGUAGE_ALIASES` in `sparql.js`):
+
+| Picked | Actually queried | Why |
+|---|---|---|
+| Hindi (Q1568), Urdu (Q1617) | Hindustani (Q11051) | Q1568 and Q1617 have **0** lexemes; all Hindi/Urdu lexical data sits under Hindustani |
+| Norwegian (Q9043) | Norwegian Bokmål (Q25167) | Q9043 has 1 lexeme; Bokmål has ~41k |
+
+Check `SELECT (COUNT(DISTINCT ?l) AS ?n) WHERE { ?l dct:language wd:QID }` before
+adding a language, otherwise it will silently return nothing.
 
 ## Privacy and access notes
 

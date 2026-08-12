@@ -2,7 +2,7 @@
 
 ## What WikiLinkua does
 
-WikiLinkua helps you learn a new language through the languages you already know. It looks for bridge words, cognates, phonetic lookalikes, false friends, sentences, videos, and short reading material tied to Wikidata Lexemes and Wikimedia content.
+WikiLinkua helps you learn a new language through the languages you already know. It finds words linked to the ones you know - genuine cognates, borrowings, translations and look-alikes, each labelled with which kind of link it actually is - plus sentences, videos and short reading material from Wikidata Lexemes and Wikimedia content.
 
 ## First-time setup
 
@@ -13,13 +13,30 @@ WikiLinkua helps you learn a new language through the languages you already know
 
 Your profile and learning progress are stored in your browser on that device unless a future sync layer is added.
 
+## How words are linked (read this first)
+
+WikiLinkua never says two words are related just because Wikidata connects them
+somehow. **A shared meaning is not shared history.** Every link carries its own
+type and the app tells you which one it is:
+
+| Link | What it means | Based on |
+|---|---|---|
+| **Cognate** | Both words descend from the *same ancestor word* - for example Malayalam തർജ്ജമ and Punjabi ਤਰਜਮਾ both come from Persian ترجمه. | Wikidata P5191 "derived from lexeme", followed up the chain from both sides |
+| **Borrowed from your language** | This word was taken directly from a word you know. | P5191 |
+| **Source of your word** | A word you know came from this one. | P5191 |
+| **Same meaning** | There is a word for the same thing in a language you know. It says **nothing** about the words being related. | P5137 "item for this sense" |
+| **Related meaning** | The meanings are linked (synonym or antonym). | P5973 / P5974 |
+| **False friend** | Looks like a word you know but means something else. | P5976 + a curated list |
+| **Looks or sounds similar** | Only the shape or sound resembles a word you know, with **no** recorded historical link. This may be pure coincidence. | Form and IPA comparison (P898) |
+
+Only the first three claim the words share a history. The others are about
+meaning or appearance, and the app labels them that way on purpose - a word for
+"animal" that happens to point at the same concept as an English word is a
+translation, not a cognate.
+
 ## Core terms
 
-- Bridge word: a target-language word that connects to something you already know through meaning, sound, or both.
-- Cognate: a word with a shared historical origin or a direct cognate link in Wikidata.
-- Friend / Faux: lookalike cross-language words that are either true matches (friend) or misleading mismatches (faux / false friend).
-- Phonetic match: a word that sounds similar enough to be useful for learning.
-- False friend: a word that looks similar but does not mean what you would expect.
+- Bridge word: a target-language word with any of the links above to a language you know.
 - Gloss: the short meaning label shown for a word.
 - Leitner box: the spaced-repetition level used to schedule the next review.
 - New word / unseen word: a word you have not answered yet.
@@ -32,7 +49,8 @@ Your profile and learning progress are stored in your browser on that device unl
 - Bridge flashcards: quick front/back review of bridge words.
 - Friend or Faux: classify lookalike pairs as true friend vs false friend.
 - Recall and reverse recall: train both directions of memory (word -> meaning and meaning -> word).
-- Odd one out and match pairs: pattern drills for discrimination and fast recall.
+- Odd one out: three words that share a recorded history with words you know, plus one that does not - you get one guess, then see the answer.
+- Match pairs: a fast recall drill.
 - Phrases: sentence practice that uses your known/learning vocabulary and spaced repetition.
 - Video and article mode: real-world input from Wikimedia Commons and Wikipedia, converted into vocabulary drills.
 
@@ -44,7 +62,7 @@ The home screen is the control center. It shows your main lesson, the practice m
 
 ### Words
 
-Use Words to browse the vocabulary list, search it, and filter it by bridge words, cognates, phonetics, and false friends.
+Use Words to browse the vocabulary list, search it, and filter it by link type: cognates, borrowings, same-meaning words, look-alikes and false friends. A counter at the top shows how many words fall into each, so you can see at a glance how much of the overlap is real shared history versus just shared meaning.
 
 ### Phrases
 
@@ -69,6 +87,8 @@ Use Contribute to record pronunciations and upload them to Wikimedia Commons whe
 ### Profile and Login
 
 Profile changes which languages you know and which language you are learning. Login uses Wikimedia accounts when real login is enabled; the development mode can sign in as a local test user.
+
+Progress is saved **per language pair**. If you learn 7% of French and then switch to Malayalam, Malayalam starts at 0% - and when you switch back to French, your 7% is still there. Nothing is overwritten when you change languages.
 
 ## How to use the learning modes well
 

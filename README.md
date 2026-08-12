@@ -7,8 +7,10 @@ Standalone web app (independent of Ordia, where the two games were first
 prototyped). It currently ships two modes:
 
 - **Bridge Words** (`/wikilinkua/`) - pick the languages you speak and a target
-  language; it finds the words whose meanings cross over (cognates, loanwords,
-  phonetic look-alikes) and turns them into a flashcard quiz with audio.
+  language; it finds the words that link across (true cognates via shared
+  ancestry, borrowings, translations, phonetic look-alikes) and turns them into a
+  flashcard quiz with audio. Each link is **typed and explained**: sharing a
+  meaning is never presented as sharing an origin - see `docs/user-guide.md`.
 - **Friend or Faux** (`/false-friends/`) - a quiz on true friends vs *faux amis*.
 
 All language data is fetched live in the browser from the

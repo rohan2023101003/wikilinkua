@@ -1,4 +1,5 @@
 import { FF_CURATED } from './curatedPairs';
+import { REL, buildRelations, primaryRelation } from './relations';
 
 export const SPARQL_ENDPOINT_URL = "https://query.wikidata.org/sparql";
 
@@ -11,11 +12,10 @@ export const LANGUAGES = [
   { qid: 'Q5146',  code: 'pt',  name: 'Portuguese' },
   { qid: 'Q9035',  code: 'da',  name: 'Danish' },
   { qid: 'Q9027',  code: 'sv',  name: 'Swedish' },
-  { qid: 'Q9043',  code: 'no',  name: 'Norwegian' },
+  { qid: 'Q25167', code: 'nb',  name: 'Norwegian (Bokmål)' },
   { qid: 'Q9168',  code: 'fa',  name: 'Persian' },
   { qid: 'Q13955', code: 'ar',  name: 'Arabic' },
-  { qid: 'Q1568',  code: 'hi',  name: 'Hindi' },
-  { qid: 'Q1617',  code: 'ur',  name: 'Urdu' },
+  { qid: 'Q11051', code: 'hi',  name: 'Hindi / Urdu (Hindustani)' },
   { qid: 'Q58635', code: 'pa',  name: 'Punjabi' },
   { qid: 'Q36236', code: 'ml',  name: 'Malayalam' },
   { qid: 'Q5885',  code: 'ta',  name: 'Tamil' },
@@ -35,12 +35,23 @@ export const LANGUAGES = [
 ];
 
 export const PRESETS = [
-  { label: 'Punjabi → Hindi', known: ['Q58635'], target: 'Q1568' },
+  { label: 'Punjabi → Hindi/Urdu', known: ['Q58635'], target: 'Q11051' },
   { label: 'Arabic → Indonesian (loanwords)', known: ['Q13955'], target: 'Q9240' },
   { label: 'English + Spanish → French', known: ['Q1860', 'Q1321'], target: 'Q150' },
   { label: 'Persian + Punjabi → Malayalam', known: ['Q9168', 'Q58635'], target: 'Q36236' },
   { label: 'English → Esperanto', known: ['Q1860'], target: 'Q143' }
 ];
+
+// Wikidata stores no lexemes at all under Hindi (Q1568), Urdu (Q1617) or the
+// umbrella Norwegian (Q9043) - the actual lexical data lives under Hindustani
+// and Bokmål. Old saved profiles are remapped so they keep working.
+export const LANGUAGE_ALIASES = {
+  Q1568: 'Q11051',   // Hindi     -> Hindustani
+  Q1617: 'Q11051',   // Urdu      -> Hindustani
+  Q9043: 'Q25167',   // Norwegian -> Norwegian (Bokmål)
+};
+
+export const resolveLangQid = (qid) => LANGUAGE_ALIASES[qid] || qid;
 
 const WL_MAX_BRIDGES = 15000;
 const FF_INNER_LIMIT = 1500;
@@ -93,17 +104,35 @@ export function getIpaSimilarity(a, b) {
   return m === 0 ? null : 1 - d / m;
 }
 
-// Fetch helper
-async function runSparqlQuery(sparql) {
+// Fetch helper. WDQS can hang or 502 on heavy queries, so every request carries
+// its own deadline instead of leaving the app spinning forever.
+const SPARQL_TIMEOUT_MS = 45000;
+
+async function runSparqlQuery(sparql, timeoutMs = SPARQL_TIMEOUT_MS) {
   const url = SPARQL_ENDPOINT_URL + '?query=' + encodeURIComponent(sparql);
-  const response = await fetch(url, {
-    headers: { 'Accept': 'application/sparql-results+json' }
-  });
-  if (!response.ok) {
-    throw new Error('SPARQL Query failed: ' + response.statusText);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/sparql-results+json' },
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error('SPARQL Query failed: ' + response.statusText);
+    }
+    return await response.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('SPARQL query timed out after ' + Math.round(timeoutMs / 1000) + 's');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return response.json();
 }
+
+const bindings = (data) => (data && data.results && data.results.bindings) || [];
+const lexId = (uri) => (uri || '').split('/').pop();
 
 // Total mapped target lexemes count query
 export async function fetchTotalTargetMapped(targetLangQid) {
@@ -182,29 +211,145 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
   return runSparqlQuery(sparql);
 }
 
-// Fetch cognate pairs for target language restricted to known languages
-export async function fetchCognatesRaw(targetLangQid, knownLangs) {
-  const knownValues = (knownLangs || []).map(l => 'wd:' + l.qid).join(' ');
-  const langFilter = knownValues
-    ? `?knownLex dct:language ?kLang . VALUES ?kLang { ${knownValues} }`
-    : '';
+const DERIVATION_LIMIT = 20000;
+
+/**
+ * Derivation ancestry for one language: every lexeme that has P5191 "derived
+ * from lexeme", plus up to three levels of ancestors.
+ *
+ * Deliberately ONE language per query. Asking for the target and the known
+ * languages together (a UNION) took ~19s on WDQS and the fully server-side
+ * transitive join (`wdt:P5191+` on both sides) 502s outright; per-language
+ * queries run in ~4-6s and can go out in parallel.
+ *
+ * Three hops matter: chains like Punjabi -> Prakrit -> Sanskrit are common, so a
+ * one-hop comparison would miss cognates whenever the two languages sit at
+ * different distances from the shared root.
+ */
+export async function fetchDerivationEdges(langQid) {
   const sparql = `
-    SELECT DISTINCT ?targetLex ?knownLex WHERE {
-      {
-        ?targetLex wdt:P5191 ?knownLex .
-        ?targetLex dct:language wd:${targetLangQid} .
-        ${langFilter}
-      }
-      UNION
-      {
-        ?knownLex wdt:P5191 ?targetLex .
-        ?targetLex dct:language wd:${targetLangQid} .
-        ${langFilter}
+    SELECT ?lex ?anc1 ?anc2 ?anc3 WHERE {
+      ?lex dct:language wd:${langQid} ;
+           wdt:P5191 ?anc1 .
+      OPTIONAL {
+        ?anc1 wdt:P5191 ?anc2 .
+        OPTIONAL { ?anc2 wdt:P5191 ?anc3 . }
       }
     }
-    LIMIT 20000
+    LIMIT ${DERIVATION_LIMIT}
   `;
   return runSparqlQuery(sparql);
+}
+
+/** lexemeId -> Set(ancestor lexeme ids), from a fetchDerivationEdges result. */
+export function buildAncestorMap(data) {
+  const map = new Map();
+  bindings(data).forEach(row => {
+    const id = lexId(row.lex && row.lex.value);
+    if (!id) return;
+    if (!map.has(id)) map.set(id, new Set());
+    const set = map.get(id);
+    ['anc1', 'anc2', 'anc3'].forEach(key => {
+      if (row[key] && row[key].value) set.add(lexId(row[key].value));
+    });
+  });
+  return map;
+}
+
+/**
+ * Lemma + language for a bounded set of lexemes - used to name the shared root
+ * in "both come from Persian ترجمه", and to name known-language words that are
+ * not already in the bridge-word result.
+ */
+export async function fetchLexemeMeta(lexemeIds) {
+  const ids = [...new Set(lexemeIds)].filter(Boolean);
+  const out = new Map();
+  const CHUNK = 200;
+
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const values = ids.slice(i, i + CHUNK).map(id => 'wd:' + id).join(' ');
+    const sparql = `
+      SELECT ?lex ?lemma ?langLabel WHERE {
+        VALUES ?lex { ${values} }
+        ?lex wikibase:lemma ?lemma ;
+             dct:language ?lang .
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "en" . }
+      }
+    `;
+    try {
+      const data = await runSparqlQuery(sparql, 25000);
+      bindings(data).forEach(row => {
+        const id = lexId(row.lex.value);
+        if (!out.has(id)) {
+          out.set(id, {
+            lemma: row.lemma ? row.lemma.value : '',
+            lang: row.langLabel ? row.langLabel.value : '',
+          });
+        }
+      });
+    } catch (e) {
+      console.warn('Lexeme metadata lookup failed for one chunk:', e.message);
+    }
+  }
+  return out;
+}
+
+/**
+ * Compare ancestries and classify each target/known lexeme pair.
+ *
+ * cognate      - both sides reach the same ancestor lexeme (neither IS the other's ancestor)
+ * borrowedFrom - the target word descends from the known word
+ * sourceOf     - the known word descends from the target word
+ *
+ * Returns Map<targetLexemeId, { cognates:[], borrowedFrom:[], sourceOf:[] }>.
+ */
+export function classifyDerivation(targetAncestors, knownAncestorsByLex, targetLexemeIds) {
+  const result = new Map();
+  const isTargetLexeme = (id) => (targetLexemeIds ? targetLexemeIds.has(id) : false);
+
+  const push = (targetId, bucket, entry) => {
+    if (!result.has(targetId)) {
+      result.set(targetId, { cognates: [], borrowedFrom: [], sourceOf: [] });
+    }
+    result.get(targetId)[bucket].push(entry);
+  };
+
+  targetAncestors.forEach((tAnc, targetId) => {
+    knownAncestorsByLex.forEach((kAnc, knownId) => {
+      if (targetId === knownId) return;
+
+      // Direct line of descent: a borrowing / inheritance, NOT a cognate pair.
+      if (tAnc.has(knownId)) {
+        push(targetId, 'borrowedFrom', { knownLexemeId: knownId });
+        return;
+      }
+      if (kAnc.has(targetId)) {
+        push(targetId, 'sourceOf', { knownLexemeId: knownId });
+        return;
+      }
+
+      // Shared ancestor = true cognates (e.g. both from a Sanskrit root).
+      for (const root of tAnc) {
+        if (kAnc.has(root)) {
+          push(targetId, 'cognates', { knownLexemeId: knownId, rootLexemeId: root });
+          break;
+        }
+      }
+    });
+  });
+
+  // A known word can descend from a target word that carries no P5191 statement
+  // of its own - such a target lexeme never appears in `targetAncestors`, so the
+  // loop above cannot see it. Pick those up from the known side.
+  knownAncestorsByLex.forEach((kAnc, knownId) => {
+    kAnc.forEach(ancestorId => {
+      if (targetAncestors.has(ancestorId)) return;   // already handled above
+      if (!isTargetLexeme(ancestorId)) return;       // ancestor is in some third language
+      push(ancestorId, 'sourceOf', { knownLexemeId: knownId });
+    });
+  });
+
+  return result;
 }
 
 // Wikidata P5976 (false friends) query
@@ -240,55 +385,133 @@ export async function fetchP5976FalseFriends(knownLangs, targetLangQid) {
   return runSparqlQuery(sparql);
 }
 
-const WORDS_CACHE_KEY = 'wikilinkua_words_cache_v4';
+// One cache slot per language pair, so switching languages never serves the
+// previous pair's words. Entries are large, so we keep only a few and evict the
+// oldest when the browser refuses the write.
+const WORDS_CACHE_KEY = 'wikilinkua_words_cache_v6';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_MAX_ENTRIES = 3;
+
+function readWordsCache() {
+  try {
+    const raw = localStorage.getItem(WORDS_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeWordsCache(cache) {
+  const keys = Object.keys(cache).sort((a, b) => (cache[b].ts || 0) - (cache[a].ts || 0));
+  keys.slice(CACHE_MAX_ENTRIES).forEach(k => delete cache[k]);
+  try {
+    localStorage.setItem(WORDS_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Quota exceeded: drop the oldest entry and retry, giving up when alone.
+    const oldest = Object.keys(cache).sort((a, b) => (cache[a].ts || 0) - (cache[b].ts || 0))[0];
+    if (oldest && Object.keys(cache).length > 1) {
+      delete cache[oldest];
+      writeWordsCache(cache);
+    } else {
+      try { localStorage.removeItem(WORDS_CACHE_KEY); } catch { /* ignore */ }
+    }
+  }
+}
+
+/** Drop cached words for one pair (or all pairs when called with no key). */
+export function clearWordsCache(cacheKey) {
+  if (!cacheKey) {
+    try { localStorage.removeItem(WORDS_CACHE_KEY); } catch { /* ignore */ }
+    return;
+  }
+  const cache = readWordsCache();
+  delete cache[cacheKey];
+  writeWordsCache(cache);
+}
 
 // Main normalization orchestration
-export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
-  const knownLangs = LANGUAGES.filter(l => knownLangQids.includes(l.qid));
+export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
+  const knownQids = [...new Set((knownLangQids || []).map(resolveLangQid))];
+  const targetLangQid = resolveLangQid(targetLangQidRaw);
+  const knownLangs = LANGUAGES.filter(l => knownQids.includes(l.qid));
   const targetLang = LANGUAGES.find(l => l.qid === targetLangQid);
 
   if (!knownLangs.length || !targetLang) {
     throw new Error("Invalid languages selected");
   }
 
-  const cacheKey = [...knownLangQids].sort().join(',') + '->' + targetLangQid;
-  try {
-    const raw = localStorage.getItem(WORDS_CACHE_KEY);
-    if (raw) {
-      const cached = JSON.parse(raw);
-      if (cached.key === cacheKey && Date.now() - cached.ts < CACHE_TTL_MS) {
-        return cached.data;
-      }
-    }
-  } catch (e) {
-    // ignore corrupt cache
+  const cacheKey = [...knownQids].sort().join(',') + '->' + targetLangQid;
+  const cache = readWordsCache();
+  const hit = cache[cacheKey];
+  if (hit && hit.data && Date.now() - hit.ts < CACHE_TTL_MS) {
+    return hit.data;
   }
 
-  // 1. Fetch total count, bridge words, and cognates in parallel
-  const [totalTargetMapped, rawBridges, rawCognates] = await Promise.all([
+  // 1. Bridge words (shared concepts) and the derivation ancestry of every
+  //    language involved, all in parallel. Ancestry failures are non-fatal: the
+  //    app then simply has no etymological claims to make, which is the honest
+  //    outcome rather than falling back to guesswork.
+  const softFail = (what) => (e) => {
+    console.warn('WikiLinkua: ' + what + ' unavailable -', e.message);
+    return { results: { bindings: [] } };
+  };
+
+  const [totalTargetMapped, rawBridges, rawTargetDeriv, ...rawKnownDeriv] = await Promise.all([
     fetchTotalTargetMapped(targetLangQid),
     fetchBridgeWordsRaw(knownLangs, targetLangQid),
-    fetchCognatesRaw(targetLangQid, knownLangs).catch(e => {
-      console.error("Failed to fetch cognates:", e);
-      return { results: { bindings: [] } };
-    })
+    fetchDerivationEdges(targetLangQid).catch(softFail('target derivation data')),
+    ...knownLangs.map(l =>
+      fetchDerivationEdges(l.qid).catch(softFail(l.name + ' derivation data'))
+    ),
   ]);
 
-  // Build cognate mapping set
-  const cognateSet = new Set();
-  if (rawCognates && rawCognates.results && rawCognates.results.bindings) {
-    rawCognates.results.bindings.forEach(row => {
-      if (row.targetLex && row.knownLex) {
-        const tId = row.targetLex.value.split('/').pop();
-        const kId = row.knownLex.value.split('/').pop();
-        cognateSet.add(`${tId}-${kId}`);
-        cognateSet.add(`${kId}-${tId}`);
-      }
+  // Ancestry per side. Each known language is merged into one map - the lexeme
+  // ids are globally unique, so there is nothing to disambiguate.
+  const targetAncestors = buildAncestorMap(rawTargetDeriv);
+  const knownAncestors = new Map();
+  rawKnownDeriv.forEach(raw => {
+    buildAncestorMap(raw).forEach((set, id) => {
+      const existing = knownAncestors.get(id);
+      if (existing) set.forEach(a => existing.add(a));
+      else knownAncestors.set(id, set);
     });
-  }
+  });
 
-  const bridgesList = rawBridges.results.bindings.map(row => {
+  const bridgeRows = bindings(rawBridges);
+  const targetLexemeIds = new Set(bridgeRows.map(r => lexId(r.targetLex.value)));
+
+  // 2. Turn raw ancestry into typed etymological claims.
+  const derivation = classifyDerivation(targetAncestors, knownAncestors, targetLexemeIds);
+
+  // Name the shared roots and the related known-language words, so the UI can
+  // say *why* ("both come from Persian ترجمه") instead of just asserting a badge.
+  const needMeta = new Set();
+  derivation.forEach(entry => {
+    entry.cognates.forEach(c => {
+      needMeta.add(c.knownLexemeId);
+      if (c.rootLexemeId) needMeta.add(c.rootLexemeId);
+    });
+    entry.borrowedFrom.forEach(c => needMeta.add(c.knownLexemeId));
+    entry.sourceOf.forEach(c => needMeta.add(c.knownLexemeId));
+  });
+  const lexemeMeta = needMeta.size ? await fetchLexemeMeta([...needMeta]) : new Map();
+  const metaOf = (id) => lexemeMeta.get(id) || {};
+
+  const decorateDerived = (list) => list.map(item => {
+    const known = metaOf(item.knownLexemeId);
+    const root = item.rootLexemeId ? metaOf(item.rootLexemeId) : null;
+    return {
+      knownLexemeId: item.knownLexemeId,
+      knownLemma: known.lemma || '',
+      knownLangName: known.lang || '',
+      rootLexemeId: item.rootLexemeId || null,
+      rootLemma: root ? root.lemma : '',
+      rootLang: root ? root.lang : '',
+    };
+  });
+
+  const bridgesList = bridgeRows.map(row => {
     const knownPairs = (row.knownPairs && row.knownPairs.value)
       ? row.knownPairs.value.split('‖').map(s => {
           const parts = s.split('|');
@@ -315,26 +538,54 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
     });
 
     const lexemeId = row.targetLex.value.split('/').pop();
-    let isCognate = false;
-    knownPairs.forEach(p => {
-      if (p.lexUri) {
-        const kId = p.lexUri.split('/').pop();
-        if (cognateSet.has(`${lexemeId}-${kId}`)) {
-          isCognate = true;
-        }
-      }
-    });
 
     const firstKnownPair = knownPairs[0] || {};
     const firstKnownLang = LANGUAGES.find(l => l.code === firstKnownPair.code) || {};
 
     const targetLemma = row.targetLemma ? row.targetLemma.value : '';
-    const lemmaSim = firstKnownPair.lemma ? getLemmaSimilarity(targetLemma, firstKnownPair.lemma) : null;
 
     // Do not heuristically mark as true/false friend here.
     // P5976 data (fetched separately) is the authoritative source for false friends.
     // Lemma similarity is stored for UI display only.
     const falseFriend = null;
+
+    // --- typed relations -----------------------------------------------------
+    // Sharing a P5137 concept means "same meaning", nothing more. It is kept
+    // strictly apart from the P5191 evidence below, which is the only thing that
+    // licenses a claim about shared word history.
+    const derived = derivation.get(lexemeId) || { cognates: [], borrowedFrom: [], sourceOf: [] };
+
+    const sameMeaning = knownPairs.map(p => ({
+      knownLexemeId: p.lexUri ? p.lexUri.split('/').pop() : null,
+      knownLemma: p.lemma || '',
+      knownLangCode: p.code || '',
+    }));
+
+    // Resemblance without any derivation evidence: flagged as a look-alike, and
+    // buildRelations() drops it entirely when a real etymological link exists.
+    const formSimilar = knownPairs
+      .map(p => {
+        const ipaSim = getIpaSimilarity(targetIpa, p.ipa);
+        const lemmaSim = getLemmaSimilarity(targetLemma, p.lemma);
+        const best = Math.max(ipaSim === null ? 0 : ipaSim, lemmaSim === null ? 0 : lemmaSim);
+        return { p, best, strong: (ipaSim !== null && ipaSim >= 0.6) || (lemmaSim !== null && lemmaSim >= 0.7) };
+      })
+      .filter(x => x.strong)
+      .map(x => ({
+        knownLexemeId: x.p.lexUri ? x.p.lexUri.split('/').pop() : null,
+        knownLemma: x.p.lemma || '',
+        knownLangCode: x.p.code || '',
+        similarity: x.best,
+      }));
+
+    const relations = buildRelations({
+      cognates: decorateDerived(derived.cognates),
+      borrowedFrom: decorateDerived(derived.borrowedFrom),
+      sourceOf: decorateDerived(derived.sourceOf),
+      sameMeaning,
+      formSimilar,
+    });
+    const primary = primaryRelation(relations);
 
     const knownLemma = firstKnownPair.lemma || '';
     let gloss = row.conceptLabel ? row.conceptLabel.value : '';
@@ -354,7 +605,12 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
       knownLang: firstKnownLang.qid || null,
       concept: row.concept.value.split('/').pop(),
       gloss: gloss,
-      cognate: isCognate,
+      // STRICT: true only when both words descend from the same ancestor lexeme.
+      // A shared meaning or a similar shape no longer sets this.
+      cognate: derived.cognates.length > 0,
+      borrowed: derived.borrowedFrom.length > 0 || derived.sourceOf.length > 0,
+      relations,
+      primaryRelationType: primary ? primary.type : null,
       phoneticMatch: ipaSimilarity !== null && ipaSimilarity >= 0.6,
       falseFriend,
       audioUrl: targetAudio,
@@ -382,6 +638,13 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
         concept: null,
         gloss: row.gloss2 ? row.gloss2.value : targetLemma,
         cognate: false,
+        borrowed: false,
+        relations: [{
+          type: REL.FALSE_FRIEND,
+          knownLemma: row.lemma1.value,
+          knownLexemeId: row.lex1.value.split('/').pop(),
+        }],
+        primaryRelationType: REL.FALSE_FRIEND,
         phoneticMatch: false,
         falseFriend: true,
         audioUrl: null,
@@ -430,6 +693,9 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
         concept: null,
         gloss: meaningB,
         cognate: false,
+        borrowed: false,
+        relations: [{ type: REL.FALSE_FRIEND, knownLemma: knownLemma }],
+        primaryRelationType: REL.FALSE_FRIEND,
         phoneticMatch: false,
         falseFriend: true,
         audioUrl: null,
@@ -456,10 +722,8 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQid) {
   const allWords = Array.from(finalMap.values());
 
   const result = { words: allWords, totalTargetMapped };
-  try {
-    localStorage.setItem(WORDS_CACHE_KEY, JSON.stringify({ key: cacheKey, ts: Date.now(), data: result }));
-  } catch (e) {
-    // ignore storage full
-  }
+  const fresh = readWordsCache();
+  fresh[cacheKey] = { ts: Date.now(), data: result };
+  writeWordsCache(fresh);
   return result;
 }

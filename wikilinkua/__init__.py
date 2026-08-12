@@ -36,6 +36,7 @@ def create_app():
         "auth.login_start",
         "auth.callback",
         "auth.logout",
+        "auth.me",
         "main.guide",
         "main.docs_index",
         "main.privacy",

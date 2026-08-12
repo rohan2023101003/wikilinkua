@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { LANGUAGES } from '../utils/sparql';
 import { playAudio } from '../utils/audio';
-import { CognateBadge, PhoneticBadge, FalseFriendBadge, BridgeBadge, SoundIcon } from './Badges';
+import { RelationBadge, SoundIcon } from './Badges';
+import {
+  REL, relationMeta, relationTypes, primaryRelation, explainRelation,
+} from '../utils/relations';
 
 export default function BridgeWordsList({ words, totalTargetMapped, profile, initialFilter = 'All', onNavigate }) {
   const [playingId, setPlayingId] = useState(null);
@@ -22,9 +25,18 @@ export default function BridgeWordsList({ words, totalTargetMapped, profile, ini
   // Filter words: must have concept
   const bridgeWords = words.filter(w => w.isBridge);
 
+  // This percentage counts words that have SOME link to a language you know -
+  // mostly "there is a word for the same thing". It is not a claim that you
+  // already know those words, and most of them are not cognates.
   const overlapPct = totalTargetMapped > 0
     ? Math.min(100, Math.round((bridgeWords.length / totalTargetMapped) * 100))
     : 0;
+
+  // Breakdown by evidence type, so the strong claims are visible separately.
+  const counts = words.reduce((acc, w) => {
+    relationTypes(w).forEach(t => { acc[t] = (acc[t] || 0) + 1; });
+    return acc;
+  }, {});
 
   const handlePlay = (e, lexemeId, audioUrl) => {
     e.stopPropagation();
@@ -51,13 +63,11 @@ export default function BridgeWordsList({ words, totalTargetMapped, profile, ini
     
     if (!matchesSearch) return false;
 
-    // 2. Pill Category filter
+    // 2. Pill category filter - each pill is one relationship type, except
+    //    'All' and 'Bridge' (any link at all).
+    if (activeFilter === 'All') return true;
     if (activeFilter === 'Bridge') return w.isBridge === true;
-    if (activeFilter === 'Cognate') return w.cognate === true;
-    if (activeFilter === 'Phonetic') return w.phoneticMatch === true;
-    if (activeFilter === 'False friend') return w.falseFriend === true;
-    
-    return true;
+    return relationTypes(w).includes(activeFilter);
   });
 
   const totalPages = Math.ceil(filteredWords.length / itemsPerPage);
@@ -167,13 +177,31 @@ export default function BridgeWordsList({ words, totalTargetMapped, profile, ini
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: '800', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>Words</h1>
           <p style={{ fontSize: '15px', color: '#54595d', margin: 0 }}>
-            Explore the vocabulary of {targetLangObj.name} and the lexical links to {knownLangsNames.toUpperCase()}.
+            Explore the vocabulary of {targetLangObj.name} and how it links to {knownLangsNames.toUpperCase()}.
           </p>
         </div>
-        
-        <div style={{ fontSize: '14px', color: '#3366cc', background: '#eaf3ff', padding: '8px 16px', borderRadius: '2px', fontWeight: '700', border: '1px solid #3366cc' }}>
-          Vocabulary overlap: ~<strong>{overlapPct}%</strong>
+
+        <div
+          title={'Share of mapped ' + (targetLangObj.name || 'target') + ' words that have any link to your languages - mostly "a word for the same thing exists", which is not the same as shared word history.'}
+          style={{ fontSize: '14px', color: '#3366cc', background: '#eaf3ff', padding: '8px 16px', borderRadius: '2px', fontWeight: '700', border: '1px solid #3366cc' }}
+        >
+          Words with a link: ~<strong>{overlapPct}%</strong>
         </div>
+      </div>
+
+      {/* Evidence breakdown. Cognate and borrowing are historical claims backed by
+          P5191; the rest are meaning-only or surface resemblance. */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px', fontSize: '13px', color: '#54595d' }}>
+        <span style={{ fontWeight: '600' }}>Evidence:</span>
+        {[REL.COGNATE, REL.BORROWED_FROM, REL.SAME_MEANING, REL.LOOKS_ALIKE].map(type => (
+          <span key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <RelationBadge type={type} />
+            <strong style={{ color: '#202122' }}>{counts[type] || 0}</strong>
+          </span>
+        ))}
+        <span style={{ color: '#72777d', fontStyle: 'italic' }}>
+          - only "{relationMeta(REL.COGNATE).label}" and "{relationMeta(REL.BORROWED_FROM).label}" mean the words share a history.
+        </span>
       </div>
 
       {/* Filter Controls Row */}
@@ -214,10 +242,20 @@ export default function BridgeWordsList({ words, totalTargetMapped, profile, ini
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
             { id: 'All', label: 'All Words', color: '#202122', bgSelected: '#3366cc', textSelected: '#fff', border: '#c8ccd1', borderSelected: '#3366cc' },
-            { id: 'Bridge', label: 'Bridge Words', color: '#3366cc', bgSelected: '#eaf3ff', textSelected: '#3366cc', border: '#c8ccd1', borderSelected: '#3366cc' },
-            { id: 'Cognate', label: 'Cognates', color: '#3366cc', bgSelected: '#eaf3ff', textSelected: '#3366cc', border: '#c8ccd1', borderSelected: '#3366cc' },
-            { id: 'Phonetic', label: 'Phonetics', color: '#0e7a63', bgSelected: '#e9f6f2', textSelected: '#0e7a63', border: '#c8ccd1', borderSelected: '#0e7a63' },
-            { id: 'False friend', label: 'False Friends', color: '#bf3c2c', bgSelected: '#fbe9e7', textSelected: '#bf3c2c', border: '#c8ccd1', borderSelected: '#bf3c2c' }
+            { id: 'Bridge', label: 'Any link', color: '#3366cc', bgSelected: '#eaf3ff', textSelected: '#3366cc', border: '#c8ccd1', borderSelected: '#3366cc' },
+            ...[REL.COGNATE, REL.BORROWED_FROM, REL.SAME_MEANING, REL.LOOKS_ALIKE, REL.FALSE_FRIEND].map(type => {
+              const meta = relationMeta(type);
+              const n = counts[type] || 0;
+              return {
+                id: type,
+                label: meta.filterLabel + (n ? ` (${n})` : ''),
+                color: meta.color,
+                bgSelected: meta.bg,
+                textSelected: meta.color,
+                border: '#c8ccd1',
+                borderSelected: meta.color,
+              };
+            })
           ].map(pill => {
             const isSelected = activeFilter === pill.id;
             return (
@@ -314,16 +352,26 @@ export default function BridgeWordsList({ words, totalTargetMapped, profile, ini
                     </div>
                     {b.isBridge && b.knownLemma && (
                       <div style={{ fontSize: '13px', color: '#54595d', marginTop: '4px' }}>
-                        Bridges to: <strong style={{ color: '#3366cc' }}>{b.knownLemma}</strong>
+                        Linked to: <strong style={{ color: '#3366cc' }}>{b.knownLemma}</strong>
                       </div>
                     )}
+                    {/* Say what the link actually is, so a shared meaning is never
+                        mistaken for shared ancestry. */}
+                    {(() => {
+                      const primary = primaryRelation(b.relations);
+                      const why = explainRelation(primary, b.lemma);
+                      return why ? (
+                        <div style={{ fontSize: '12px', color: '#72777d', marginTop: '6px', lineHeight: 1.45, fontStyle: 'italic' }}>
+                          {why}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
 
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '8px' }}>
-                    {b.isBridge && <BridgeBadge />}
-                    {b.cognate && <CognateBadge />}
-                    {b.phoneticMatch && <PhoneticBadge />}
-                    {b.falseFriend === true && <FalseFriendBadge />}
+                    {relationTypes(b).map(type => (
+                      <RelationBadge key={type} type={type} />
+                    ))}
                   </div>
                 </div>
               ))}

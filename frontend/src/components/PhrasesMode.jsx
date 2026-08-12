@@ -38,7 +38,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
       setLoading(true);
       setError(null);
       try {
-        const due = getDuePhrases();                 // repetition from past sessions
+        const due = getDuePhrases(profile);          // repetition from past sessions
         let fetched = [];
         let src = 'learned';
 
@@ -94,7 +94,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
   };
 
   const grade = (correct) => {
-    if (current) gradePhrase(current, correct);
+    if (current) gradePhrase(profile, current, correct);
     setReveal(false);
     setMtText(null);
     setMtLoading(false);

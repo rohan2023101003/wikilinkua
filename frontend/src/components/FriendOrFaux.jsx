@@ -60,7 +60,7 @@ export function FriendOrFauxExercise({ word, onAnswer }) {
             ) : (
               <>
                 <CodexIcon icon={cdxIconCheck} size="16px" color="#0e7a63" />
-                <span><strong>Cognate/True Friend:</strong> <code>{word.lemma}</code> and <code>{word.knownLemma}</code> both mean <strong>{word.gloss}</strong>.</span>
+                <span><strong>True friend:</strong> <code>{word.lemma}</code> and <code>{word.knownLemma}</code> both mean <strong>{word.gloss}</strong>.</span>
               </>
             )}
           </div>

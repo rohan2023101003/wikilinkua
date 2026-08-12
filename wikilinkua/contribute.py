@@ -49,22 +49,62 @@ def contribute_audio():
         return jsonify(ok=False, message="Please record a clip and enter the word.")
 
     username = (session.get("user") or {}).get("username", "Unknown")
+    ext, mime = _audio_kind(audio.filename, audio.mimetype)
     try:
         result = _upload_to_commons(
             token, audio.read(), word, code, lang_name, username,
-            current_app.config["COMMONS_API_URL"],
+            current_app.config["COMMONS_API_URL"], ext, mime,
         )
     except Exception as exc:  # noqa: BLE001 - surface any failure to the UI
         result = {"ok": False, "message": "Upload failed: " + str(exc)}
     return jsonify(result)
 
 
-def _upload_to_commons(token, audio_bytes, word, code, lang_name, username, api_url):
+# What the browser can hand us -> (Commons file extension, MIME type sent along).
+_AUDIO_KINDS = {
+    "ogg": ("ogg", "audio/ogg"),
+    "oga": ("oga", "audio/ogg"),
+    "opus": ("opus", "audio/ogg"),
+    "webm": ("webm", "audio/webm"),
+    "wav": ("wav", "audio/wav"),
+    "mp3": ("mp3", "audio/mpeg"),
+    "m4a": ("m4a", "audio/mp4"),
+    "flac": ("flac", "audio/flac"),
+}
+
+
+def _audio_kind(filename, mimetype):
+    """Pick the file extension Commons should see, from the upload itself."""
+    ext = (filename or "").rsplit(".", 1)[-1].lower()
+    if ext in _AUDIO_KINDS:
+        return _AUDIO_KINDS[ext]
+    base = (mimetype or "").split(";")[0].strip().lower()
+    for kind_ext, (out_ext, out_mime) in _AUDIO_KINDS.items():
+        if base == out_mime and kind_ext == out_ext:
+            return out_ext, out_mime
+    return "webm", "audio/webm"
+
+
+# Characters MediaWiki refuses in a page title.
+_BAD_TITLE_CHARS = '#<>[]|{}:/\\?"'
+
+
+def _safe_title_part(text, fallback):
+    cleaned = "".join(" " if ch in _BAD_TITLE_CHARS else ch for ch in (text or ""))
+    cleaned = " ".join(cleaned.split()).strip()
+    return cleaned[:80] or fallback
+
+
+def _upload_to_commons(token, audio_bytes, word, code, lang_name, username,
+                       api_url, ext="webm", mime="audio/webm"):
     """Upload one audio clip to Commons via the action API + OAuth bearer token."""
     import requests
 
     sess = requests.Session()
-    sess.headers.update({"Authorization": "Bearer " + token})
+    sess.headers.update({
+        "Authorization": "Bearer " + token,
+        "User-Agent": "WikiLinkua/1.0 (https://wikilinkua.toolforge.org)",
+    })
 
     # 1) Fetch a CSRF token. With an identity-only token (no edit/upload grant),
     #    the API returns the anonymous token "+\\" - our signal that uploads
@@ -76,13 +116,16 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username, api_
     if not csrf or csrf == "+\\":
         return {
             "ok": False,
-            "message": ("Upload permission isn't granted yet. Your recording "
-                        "works - uploads go live once the Commons-upload OAuth "
-                        "consumer is approved and its keys are set."),
+            "message": ("Upload permission isn't granted yet - the OAuth consumer "
+                        "in use has no 'upload' grant. Your recording still works; "
+                        "log out and back in if the consumer was just updated."),
         }
 
-    filename = 'Pronunciation of {word} ({code}) - {user}.webm'.format(
-        word=word, code=code or "xx", user=username)
+    safe_word = _safe_title_part(word, "word")
+    safe_user = _safe_title_part(username, "WikiLinkua user")
+    base_name = 'Pronunciation of {word} ({code}) - {user}'.format(
+        word=safe_word, code=code or "xx", user=safe_user)
+
     date = datetime.date.today().isoformat()
     in_lang = (" in " + lang_name) if lang_name else ""
     text = (
@@ -97,16 +140,46 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username, api_
         "{{self|cc-by-sa-4.0}}\n\n"
         "[[Category:Pronunciation]]"
     )
+    if lang_name:
+        text += "\n[[Category:" + lang_name + " pronunciation]]"
 
-    resp = sess.post(api_url, data={
-        "action": "upload",
-        "filename": filename,
-        "text": text,
-        "comment": "Pronunciation recorded via WikiLinkua",
-        "token": csrf,
-        "ignorewarnings": 1,
-        "format": "json",
-    }, files={"file": (filename, audio_bytes, "audio/webm")}, timeout=60).json()
+    def do_upload(filename, ignore_warnings):
+        data = {
+            "action": "upload",
+            "filename": filename,
+            "text": text,
+            "comment": "Pronunciation recorded via WikiLinkua",
+            "token": csrf,
+            "format": "json",
+        }
+        if ignore_warnings:
+            data["ignorewarnings"] = 1
+        return sess.post(
+            api_url, data=data,
+            files={"file": (filename, audio_bytes, mime)}, timeout=60,
+        ).json()
+
+    # First try the clean name and let Commons tell us about problems, so an
+    # identical file already on Commons is reported rather than silently
+    # overwriting someone else's work (which ignorewarnings=1 would do).
+    filename = base_name + "." + ext
+    resp = do_upload(filename, ignore_warnings=False)
+
+    warnings = resp.get("upload", {}).get("warnings", {})
+    if warnings:
+        if "duplicate" in warnings or "exists-normalized" in warnings:
+            dup = warnings.get("duplicate") or []
+            existing = dup[0] if dup else ""
+            return {
+                "ok": False,
+                "message": ("This exact recording is already on Commons"
+                            + (' as "' + existing + '"' if existing else "")
+                            + ". Nothing to upload."),
+            }
+        # Name clash or a fussy title: retry once under a timestamped name.
+        stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        filename = base_name + " " + stamp + "." + ext
+        resp = do_upload(filename, ignore_warnings=True)
 
     up = resp.get("upload", {})
     if up.get("result") == "Success":
@@ -115,5 +188,12 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username, api_
             "message": "Uploaded to Wikimedia Commons!",
             "url": up.get("imageinfo", {}).get("descriptionurl", ""),
         }
+
     err = resp.get("error", {})
+    if err.get("code") in ("permissiondenied", "mustbeloggedin", "notloggedin"):
+        return {
+            "ok": False,
+            "message": ("Commons refused the upload: your login doesn't carry the "
+                        "upload grant. Log out and log in again to refresh it."),
+        }
     return {"ok": False, "message": err.get("info", "Upload did not succeed.")}

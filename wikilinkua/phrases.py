@@ -13,7 +13,8 @@ bp = Blueprint("phrases", __name__)
 # ISO 639-1 (used in the app) -> ISO 639-3 (used by Tatoeba).
 ISO1_TO_ISO3 = {
     "en": "eng", "es": "spa", "fr": "fra", "de": "deu", "it": "ita",
-    "pt": "por", "da": "dan", "sv": "swe", "no": "nor", "fa": "pes",
+    "pt": "por", "da": "dan", "sv": "swe", "no": "nor", "nb": "nob",
+    "fa": "pes",
     "ar": "ara", "hi": "hin", "ur": "urd", "pa": "pan", "ml": "mal",
     "ta": "tam", "id": "ind", "ms": "msa", "ja": "jpn", "ru": "rus",
     "uk": "ukr", "pl": "pol", "cs": "ces", "tr": "tur", "eo": "epo",

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LANGUAGES } from '../utils/sparql';
+import { deckWordCount } from '../utils/storage';
 
 export default function Onboarding({ profile, onSaveProfile }) {
   const [knownLangs, setKnownLangs] = useState(profile?.knownLangs || ['Q1860']); // default English
@@ -34,7 +35,11 @@ export default function Onboarding({ profile, onSaveProfile }) {
     onSaveProfile({ knownLangs, targetLang });
   };
 
-  const filteredKnown = LANGUAGES.filter(lang => 
+  const nameOf = (qid) => (LANGUAGES.find(l => l.qid === qid) || {}).name || qid;
+  const pairLabel = `${knownLangs.map(nameOf).join(' + ')} → ${nameOf(targetLang)}`;
+  const savedWords = deckWordCount({ knownLangs, targetLang });
+
+  const filteredKnown = LANGUAGES.filter(lang =>
     lang.name.toLowerCase().includes(knownSearch.toLowerCase()) ||
     lang.code.toLowerCase().includes(knownSearch.toLowerCase())
   );
@@ -211,6 +216,13 @@ export default function Onboarding({ profile, onSaveProfile }) {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Progress is kept per language pair - tell the learner what they'll get. */}
+        <div style={{ textAlign: 'center', fontSize: '14px', color: '#54595d', marginTop: '-8px' }}>
+          {savedWords > 0
+            ? `You already have ${savedWords} word${savedWords === 1 ? '' : 's'} in progress for ${pairLabel}. Your progress for every other pair is kept safe too.`
+            : `${pairLabel} is a fresh start - you'll begin at 0%. Progress for pairs you've studied before is kept and restored when you switch back.`}
         </div>
 
         {/* Submit */}

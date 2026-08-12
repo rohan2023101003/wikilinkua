@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { playAudio } from '../utils/audio';
-import { CognateBadge, PhoneticBadge, BridgeBadge, SoundIcon } from './Badges';
+import { RelationBadge, SoundIcon } from './Badges';
+import { relationTypes, primaryRelation, explainRelation } from '../utils/relations';
 
 export function FlashcardExercise({ word, onAnswer }) {
   const [reveal, setReveal] = useState(false);
@@ -90,15 +91,23 @@ export function FlashcardExercise({ word, onAnswer }) {
             </div>
 
             {word.isBridge && word.knownLemma && (
-              <div style={{ fontSize: '15px', color: '#54595d', lineHeight: '1.5', marginBottom: '20px' }}>
-                Bridges directly to your known word: <strong>{word.knownLemma}</strong>
+              <div style={{ fontSize: '15px', color: '#54595d', lineHeight: '1.5', marginBottom: '8px' }}>
+                Linked to your word: <strong>{word.knownLemma}</strong>
               </div>
             )}
 
+            {/* Why they are linked - a shared meaning is not a shared origin. */}
+            {(() => {
+              const why = explainRelation(primaryRelation(word.relations), word.lemma);
+              return why ? (
+                <div style={{ fontSize: '13px', color: '#72777d', lineHeight: 1.5, marginBottom: '20px', fontStyle: 'italic' }}>
+                  {why}
+                </div>
+              ) : null;
+            })()}
+
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
-              {word.isBridge && <BridgeBadge />}
-              {word.cognate && <CognateBadge />}
-              {word.phoneticMatch && <PhoneticBadge />}
+              {relationTypes(word).map(type => <RelationBadge key={type} type={type} />)}
             </div>
           </div>
         )}

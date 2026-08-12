@@ -15,8 +15,8 @@ We never store passwords. We only read the user's Wikimedia username + id.
 import secrets
 from urllib.parse import urlencode
 
-from flask import (Blueprint, current_app, flash, redirect, render_template,
-                   request, session, url_for)
+from flask import (Blueprint, current_app, flash, jsonify, redirect,
+                   render_template, request, session, url_for)
 
 bp = Blueprint("auth", __name__)
 
@@ -24,6 +24,22 @@ bp = Blueprint("auth", __name__)
 def current_user():
     """Return the logged-in user dict ({'id','username'}) or None."""
     return session.get("user")
+
+
+@bp.route("/api/me")
+def me():
+    """Session state for the React app (it renders Login vs. Log out from this).
+
+    `canUpload` is true only for a real Wikimedia login: the dev test user has no
+    OAuth token, so it can never upload to Commons.
+    """
+    user = current_user()
+    return jsonify(
+        loggedIn=bool(user),
+        username=(user or {}).get("username"),
+        devLogin=bool(current_app.config["DEV_LOGIN"]),
+        canUpload=bool(session.get("oauth_token")),
+    )
 
 
 @bp.route("/login")

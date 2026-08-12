@@ -12,6 +12,7 @@
  */
 
 import { SPARQL_ENDPOINT_URL } from './sparql';
+import { getDeck, savePhraseProgress } from './storage';
 
 // ---- normalization / tokenization (accent-insensitive) ----
 function norm(s) {
@@ -133,17 +134,12 @@ export function highlightSegments(text, word) {
 }
 
 // ---- phrase-level SRS (repetition for memory) ----
-const PHRASE_KEY = 'wikilinkua_phrases';
+// Stored inside the learner's per-language-pair deck, so French phrases never
+// show up while practising Malayalam.
 const BOX_DAYS = [0, 1, 3, 7, 14, 30];
 
-function loadStore() {
-  try { return JSON.parse(localStorage.getItem(PHRASE_KEY)) || {}; }
-  catch { return {}; }
-}
-function saveStore(s) { localStorage.setItem(PHRASE_KEY, JSON.stringify(s)); }
-
-export function gradePhrase(phrase, correct) {
-  const store = loadStore();
+export function gradePhrase(profile, phrase, correct) {
+  const store = { ...getDeck(profile).phrases };
   const cur = store[phrase.id] || { boxLevel: 0 };
   const box = correct ? Math.min(5, cur.boxLevel + 1) : Math.max(0, cur.boxLevel - 1);
   store[phrase.id] = {
@@ -154,11 +150,11 @@ export function gradePhrase(phrase, correct) {
       audio: phrase.audio, translation: phrase.translation, matchedWord: phrase.matchedWord,
     },
   };
-  saveStore(store);
+  savePhraseProgress(profile, store);
 }
 
-export function getDuePhrases() {
-  const store = loadStore();
+export function getDuePhrases(profile) {
+  const store = getDeck(profile).phrases || {};
   const now = Date.now();
   return Object.values(store)
     .filter(e => e.phrase && e.dueDate <= now)

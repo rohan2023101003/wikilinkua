@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { LANGUAGES } from '../utils/sparql';
+import { getLanguage } from '../utils/sparql';
 import { playAudio } from '../utils/audio';
 import { RelationBadge, SoundIcon } from './Badges';
 import {
   REL, relationMeta, relationTypes, primaryRelation, explainRelation,
 } from '../utils/relations';
 
-export default function BridgeWordsList({ words, totalTargetMapped, profile, initialFilter = 'All', onNavigate }) {
+export default function BridgeWordsList({ words, totalTargetMapped, coverage, profile, initialFilter = 'All', onNavigate }) {
   const [playingId, setPlayingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(initialFilter); // 'All' | 'Bridge' | 'Cognate' | 'Phonetic' | 'False friend'
@@ -17,23 +17,27 @@ export default function BridgeWordsList({ words, totalTargetMapped, profile, ini
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
 
-  const targetLangObj = LANGUAGES.find(l => l.qid === profile.targetLang) || {};
+  const targetLangObj = getLanguage(profile.targetLang) || {};
   const knownLangsNames = profile.knownLangs
-    .map(qid => LANGUAGES.find(l => l.qid === qid)?.code || '')
+    .map(qid => getLanguage(qid)?.code || '')
     .join(' + ');
 
-  // Filter words: must have concept
-  const bridgeWords = words.filter(w => w.isBridge);
+  // The percentage MUST come from the exact count query, never from the loaded
+  // list: that list is capped, so on big languages it is a truncated sample and
+  // dividing it by the full denominator would understate the overlap badly.
+  // If the count query failed, we show nothing rather than a wrong number.
+  const exactBridges = coverage && typeof coverage.bridgeCount === 'number'
+    ? coverage.bridgeCount
+    : null;
+  const overlapPct = (exactBridges !== null && totalTargetMapped > 0)
+    ? Math.min(100, Math.round((exactBridges / totalTargetMapped) * 100))
+    : null;
 
-  // This percentage counts words that have SOME link to a language you know -
-  // mostly "there is a word for the same thing". It is not a claim that you
-  // already know those words, and most of them are not cognates.
-  const overlapPct = totalTargetMapped > 0
-    ? Math.min(100, Math.round((bridgeWords.length / totalTargetMapped) * 100))
-    : 0;
-
-  // Breakdown by evidence type, so the strong claims are visible separately.
-  const counts = words.reduce((acc, w) => {
+  // Breakdown by evidence type over the words actually loaded. Curated false
+  // friends are hand-written entries, not Wikidata lexemes, so they are counted
+  // separately and never mixed into Wikidata-derived figures.
+  const curatedCount = words.filter(w => w.source === 'curated').length;
+  const counts = words.filter(w => w.source !== 'curated').reduce((acc, w) => {
     relationTypes(w).forEach(t => { acc[t] = (acc[t] || 0) + 1; });
     return acc;
   }, {});
@@ -181,12 +185,23 @@ export default function BridgeWordsList({ words, totalTargetMapped, profile, ini
           </p>
         </div>
 
-        <div
-          title={'Share of mapped ' + (targetLangObj.name || 'target') + ' words that have any link to your languages - mostly "a word for the same thing exists", which is not the same as shared word history.'}
-          style={{ fontSize: '14px', color: '#3366cc', background: '#eaf3ff', padding: '8px 16px', borderRadius: '2px', fontWeight: '700', border: '1px solid #3366cc' }}
-        >
-          Words with a link: ~<strong>{overlapPct}%</strong>
-        </div>
+        {overlapPct !== null ? (
+          <div
+            title={exactBridges.toLocaleString() + ' of ' + totalTargetMapped.toLocaleString()
+              + ' ' + (targetLangObj.name || 'target') + ' words that carry a concept link (P5137) also have one in a language you know.'
+              + ' Mostly this means "a word for the same thing exists" - not shared word history.'}
+            style={{ fontSize: '14px', color: '#3366cc', background: '#eaf3ff', padding: '8px 16px', borderRadius: '2px', fontWeight: '700', border: '1px solid #3366cc' }}
+          >
+            Words with a link: <strong>{overlapPct}%</strong>
+            <span style={{ fontWeight: '400', fontSize: '12px', display: 'block', color: '#54595d' }}>
+              {exactBridges.toLocaleString()} of {totalTargetMapped.toLocaleString()} mapped words
+            </span>
+          </div>
+        ) : (
+          <div style={{ fontSize: '13px', color: '#54595d', background: '#f8f9fa', padding: '8px 16px', borderRadius: '2px', border: '1px solid #c8ccd1' }}>
+            Overlap figure unavailable right now
+          </div>
+        )}
       </div>
 
       {/* Evidence breakdown. Cognate and borrowing are historical claims backed by
@@ -203,6 +218,22 @@ export default function BridgeWordsList({ words, totalTargetMapped, profile, ini
           - only "{relationMeta(REL.COGNATE).label}" and "{relationMeta(REL.BORROWED_FROM).label}" mean the words share a history.
         </span>
       </div>
+
+      {/* Say plainly when the browsable list is a sample of a bigger vocabulary,
+          so the counts above are not mistaken for the whole language. */}
+      {coverage && coverage.truncated && (
+        <p style={{ fontSize: '12px', color: '#886600', background: '#fef6e7', border: '1px solid #f2d9a0', borderRadius: '2px', padding: '8px 12px', margin: '0 0 16px' }}>
+          This language has more mapped words than one query can return, so the list below is a
+          sample of {coverage.loadedLexemes.toLocaleString()} words. The percentage above is still
+          exact - it is counted separately - but these evidence counts describe the sample only.
+        </p>
+      )}
+      {curatedCount > 0 && (
+        <p style={{ fontSize: '12px', color: '#72777d', margin: '0 0 16px' }}>
+          Plus {curatedCount} hand-curated false friend{curatedCount === 1 ? '' : 's'} - well-known
+          traps that are not (yet) recorded in Wikidata, so they are kept out of the counts above.
+        </p>
+      )}
 
       {/* Filter Controls Row */}
       <div className="filter-controls-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>

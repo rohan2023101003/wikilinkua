@@ -17,9 +17,14 @@ from flask import (Blueprint, current_app, jsonify, render_template, request,
 bp = Blueprint("contribute", __name__)
 
 
-@bp.route("/contribute")
+@bp.route("/contribute/record")
 def contribute_page():
-    """Recording page. Can be pre-filled via ?word=&code=&lang=&qid= ."""
+    """Recording page - reached from the Contribute section's "no audio" task.
+
+    Lives under /contribute/record so that /contribute itself belongs to the
+    in-app Contribute section (the data-gap dashboard).
+    Can be pre-filled via ?word=&code=&lang=&qid= .
+    """
     return render_template(
         "contribute.html",
         word=request.args.get("word", ""),

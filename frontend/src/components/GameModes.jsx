@@ -4,7 +4,7 @@ import { FriendOrFauxExercise } from './FriendOrFaux';
 import { RecallExercise } from './Recall';
 import { ReverseRecallExercise } from './ReverseRecall';
 import { isWordDue } from '../utils/srs';
-import { LANGUAGES } from '../utils/sparql';
+import { getLanguage } from '../utils/sparql';
 import { CodexIcon, cdxIconCheck } from './Badges';
 
 // Main Mode Session Manager Component
@@ -243,15 +243,18 @@ function MainModeSession({ words, progress, onAnswerWord, onNavigate }) {
 }
 
 // Game Modes Selection Dashboard
-export default function GameModes({ words, progress, onAnswerWord, onNavigate, totalTargetMapped }) {
+export default function GameModes({ words, progress, onAnswerWord, onNavigate, totalTargetMapped, coverage }) {
   const [activeSession, setActiveSession] = useState(false);
 
   const bridgeWords = words.filter(w => w.isBridge);
-  const overlapPct = totalTargetMapped > 0
-    ? Math.min(100, Math.round((bridgeWords.length / totalTargetMapped) * 100))
-    : 0;
+  // Must use the exact count query - the loaded list is capped, so counting it
+  // would understate the overlap on any large language. Null = do not show a figure.
+  const exactBridges = coverage && typeof coverage.bridgeCount === 'number' ? coverage.bridgeCount : null;
+  const overlapPct = (exactBridges !== null && totalTargetMapped > 0)
+    ? Math.min(100, Math.round((exactBridges / totalTargetMapped) * 100))
+    : null;
 
-  const targetLangObj = LANGUAGES.find(l => l.qid === words[0]?.targetLang) || {};
+  const targetLangObj = getLanguage(words[0]?.targetLang) || {};
 
   // Count due words
   const dueCount = words.filter(w => {
@@ -401,7 +404,9 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate, t
           onMouseOver={(e) => { e.currentTarget.style.background = '#d2e4ff'; }}
           onMouseOut={(e) => { e.currentTarget.style.background = '#eaf3ff'; }}
         >
-          {overlapPct}% vocabulary overlap
+          {overlapPct !== null
+            ? `${overlapPct}% of mapped ${targetLangObj.name || 'target'} words link to yours`
+            : `${bridgeWords.length.toLocaleString()} linked words loaded`}
         </button>
       </div>
 

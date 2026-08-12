@@ -8,6 +8,7 @@ import GameModes from './components/GameModes';
 import PhrasesMode from './components/PhrasesMode';
 import VideoMode from './components/VideoMode';
 import ArticleMode from './components/ArticleMode';
+import ContributeMode from './components/ContributeMode';
 
 // Import new game modes
 import { Recall } from './components/Recall';
@@ -21,30 +22,43 @@ import {
   getActiveProfile, setActiveProfile, getDeck, saveWordProgress, profileKey,
 } from './utils/storage';
 
+/**
+ * Which view a URL asks for. The server renders the same SPA for several paths,
+ * so this is the only thing that distinguishes them.
+ *
+ * /contribute/record is deliberately NOT here: that is a server-rendered page
+ * (the audio recorder), reached from inside the Contribute section.
+ */
+function viewFromPath() {
+  const path = (typeof window !== 'undefined' && window.location.pathname) || '/';
+  if (path.includes('/false-friends')) return 'friend-or-faux';
+  if (path.includes('/wikilinkua')) return 'bridge-words';
+  if (path.includes('/contribute')) return 'contribute';
+  return 'game-modes';
+}
+
 export default function App() {
   const [profile, setProfile] = useState(null);
   const [progress, setProgress] = useState({ words: {} });
   const [account, setAccount] = useState(null);
   const [words, setWords] = useState([]);
   const [totalTargetMapped, setTotalTargetMapped] = useState(0);
+  const [coverage, setCoverage] = useState(null);   // exact counts, not derived from the capped list
   const [initialWordsFilter, setInitialWordsFilter] = useState('All');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [view, setView] = useState(() => {
-    const path = window.location.pathname;
-    if (path.includes('/false-friends')) return 'friend-or-faux';
-    if (path.includes('/wikilinkua')) return 'bridge-words';
-    return 'game-modes';
-  });
+  const [view, setView] = useState(viewFromPath);
 
-  // 1. Initial load of the active profile + that pair's deck from localStorage
+  // 1. Initial load of the active profile + that pair's deck from localStorage.
+  //    Land on the view the URL asked for - this used to force 'game-modes',
+  //    which silently broke every deep link (/contribute, /false-friends, ...).
   useEffect(() => {
     const stored = getActiveProfile();
     if (stored) {
       setProfile(stored);
       setProgress({ words: getDeck(stored).words || {} });
-      setView('game-modes');
+      setView(viewFromPath());
     } else {
       setView('onboarding');
     }
@@ -71,11 +85,17 @@ export default function App() {
       // Never let the previous pair's words linger while the new pair loads.
       setWords([]);
       setTotalTargetMapped(0);
+      setCoverage(null);
       try {
         const result = await loadAndNormalizeWords(profile.knownLangs, profile.targetLang);
         if (isCurrent) {
           setWords(result.words);
           setTotalTargetMapped(result.totalTargetMapped);
+          setCoverage({
+            bridgeCount: result.bridgeCount,
+            truncated: result.truncated,
+            loadedLexemes: result.loadedLexemes,
+          });
         }
       } catch (err) {
         console.error("Error loading words from WDQS:", err);
@@ -149,11 +169,11 @@ export default function App() {
       { id: 'words-status', label: 'Progress' },
       { id: 'video', label: 'Video' },
       { id: 'article', label: 'Article' },
+      { id: 'contribute', label: 'Contribute' },
       { id: 'onboarding', label: 'Profile' }
     ];
 
     const externalLinks = [
-      { href: '/contribute', label: 'Contribute' },
       { href: '/guide', label: 'Guide' }
     ];
 
@@ -302,7 +322,8 @@ export default function App() {
         return (
           <BridgeWordsList 
             words={words} 
-            totalTargetMapped={totalTargetMapped} 
+            totalTargetMapped={totalTargetMapped}
+            coverage={coverage}
             profile={profile} 
             progress={progress}
             initialFilter={initialWordsFilter}
@@ -382,6 +403,13 @@ export default function App() {
             onNavigate={handleNavigate}
           />
         );
+      case 'contribute':
+        return (
+          <ContributeMode
+            profile={profile}
+            onNavigate={handleNavigate}
+          />
+        );
       case 'article':
         return (
           <ArticleMode
@@ -401,6 +429,7 @@ export default function App() {
             onAnswerWord={handleAnswerWord} 
             onNavigate={handleNavigate}
             totalTargetMapped={totalTargetMapped}
+            coverage={coverage}
           />
         );
     }

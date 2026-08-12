@@ -8,7 +8,10 @@ WikiLinkua is a thin-backend, browser-first language-learning app built around W
 
 - `app.py`: local entry point.
 - `wikilinkua/__init__.py`: Flask app factory and login gate.
-- `wikilinkua/views.py`: page routes for the SPA and supporting pages.
+- `wikilinkua/views.py`: page routes for the SPA and supporting pages. Note `/contribute`
+  serves the **SPA** (the data-gap dashboard); the audio recorder is a server-rendered
+  sub-page at `/contribute/record`. The nav links to `/contribute` everywhere, so the
+  section entry point is the same from server pages and from inside the app.
 - `wikilinkua/auth.py`: Wikimedia OAuth and dev-login flow.
 - `wikilinkua/contribute.py`: pronunciation recording and Commons upload.
 - `wikilinkua/phrases.py`: Tatoeba proxy and MinT fallback.
@@ -132,6 +135,41 @@ There is no project database in the current code path.
 - Wikipedia APIs for article mode.
 
 These are all external dependencies and should be documented explicitly in deployment and privacy notes.
+
+### Language list is generated, not hand-written
+
+`frontend/src/utils/languageData.js` is a GENERATED file listing every language that has
+lexemes on Wikidata (~1,560) with its lexeme count. Regenerate it with the queries in its
+header comment; do not hand-edit it. Display names and search aliases that differ from the
+Wikidata label (Hindustani -> "Hindi / Urdu") live in `LANGUAGE_DISPLAY` in `sparql.js`, so
+regenerating never clobbers them.
+
+Because the list is ~1.5k entries, look languages up with `getLanguage(qid)` (map-backed
+and alias-aware) rather than `LANGUAGES.find(...)`, especially inside per-word loops.
+
+### Contribution gap finder
+
+`frontend/src/utils/gaps.js` holds the maintenance-task catalogue behind the Contribute
+tab. Each task carries its own count query, list query, what it unlocks, and how to fix it.
+Rules when adding tasks:
+
+- Scope every query to one language (`dct:language wd:QID`). That is what keeps them at
+  seconds rather than timing out.
+- Prefer two plain counts over one `COUNT` with `FILTER NOT EXISTS` when the negation is
+  slow - "lexemes with no sense" went from ~55s to ~3s that way.
+- Use `available(profile)` for language-dependent tasks. Suggesting grammatical gender for
+  a language that has none would be actively wrong, so the gender tasks switch on the
+  measured share of nouns that already carry P5185.
+
+### Wikipedia API traps
+
+- `lllang` (prop=langlinks) accepts **one** language code. Passing `en|pa` returns no
+  langlinks at all rather than an error, which previously made the app announce "no
+  English article yet" for articles that plainly exist. Fetch all langlinks and filter
+  client-side.
+- Wikipedia language codes are not always our language code: Hindustani maps to the `hi`
+  and `ur` Wikipedias, Bokmål to `nb` and legacy `no`. See `WIKI_CODE_VARIANTS` in
+  `ArticleMode.jsx`.
 
 ### Language QIDs are not obvious
 

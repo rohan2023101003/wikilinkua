@@ -8,7 +8,10 @@ WikiLinkua helps you learn a new language through the languages you already know
 
 1. Open the app.
 2. Choose the languages you already know.
-3. Choose the language you want to learn.
+3. Choose the language you want to learn. Every language that has lexemes on Wikidata is
+   listed (about 1,560 of them) with its lexeme count, because that count is the best
+   predictor of how much the app can teach you. By default only languages with at least
+   50 lexemes are shown; "show all" reveals the rest.
 4. Start from Home, Words, or Phrases depending on what you want to practice.
 
 Your profile and learning progress are stored in your browser on that device unless a future sync layer is added.
@@ -82,7 +85,20 @@ Use Article to search Wikipedia articles in your target language and turn articl
 
 ### Contribute
 
-Use Contribute to record pronunciations and upload them to Wikimedia Commons when your login has the needed upload permission.
+Contribute shows **what data is missing** for a language and what each gap costs learners.
+Pick any language and the app measures it live against Wikidata:
+
+- how many lexemes exist, and how many are actually usable for learning (they have a
+  sense linked to a concept),
+- a prioritised task list - high priority means it blocks a core feature - with a live
+  count for each, examples you can click straight through to Wikidata, and a link that
+  opens the full list in the Query Service.
+
+Tasks adapt to the language. Grammatical gender is only suggested where the language
+already uses it; where a language barely uses gender, the app instead flags the existing
+gender statements as likely errors to review.
+
+Recording pronunciations lives at `/contribute/record`, reached from the "no audio" task or the link at the bottom of the Contribute page.
 
 ### Profile and Login
 

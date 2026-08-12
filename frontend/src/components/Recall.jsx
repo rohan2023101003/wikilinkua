@@ -16,9 +16,18 @@ export function RecallExercise({ word, words, onAnswer }) {
     const correctGloss = word.gloss || 'Meaning';
     const otherGlossWords = words.filter(w => w.lexemeId !== word.lexemeId && w.gloss && w.gloss !== word.gloss);
     
-    // Pick 3 random distractors
+    // Pick 3 random distractors, never repeating the same text - two identical
+    // options (e.g. two words both glossed "yes") make the question unanswerable.
     const shuffledOthers = [...otherGlossWords].sort(() => 0.5 - Math.random());
-    const distractors = shuffledOthers.slice(0, 3).map(w => w.gloss);
+    const seenGloss = new Set([correctGloss.trim().toLowerCase()]);
+    const distractors = [];
+    for (const w of shuffledOthers) {
+      const key = (w.gloss || '').trim().toLowerCase();
+      if (!key || seenGloss.has(key)) continue;
+      seenGloss.add(key);
+      distractors.push(w.gloss);
+      if (distractors.length === 3) break;
+    }
 
     // Shuffle correct option with distractors
     const allChoices = [...distractors, correctGloss].sort(() => 0.5 - Math.random());

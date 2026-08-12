@@ -16,7 +16,16 @@ export function ReverseRecallExercise({ word, words, onAnswer }) {
     
     const shuffledOthers = [...otherWords].sort(() => 0.5 - Math.random());
     // Map to full word object so we can play audio and get details
-    const distractors = shuffledOthers.slice(0, 2);
+    // Distinct lemmas only - duplicate tiles would be indistinguishable.
+    const seenLemma = new Set([(word.lemma || '').trim().toLowerCase()]);
+    const distractors = [];
+    for (const w of shuffledOthers) {
+      const key = (w.lemma || '').trim().toLowerCase();
+      if (!key || seenLemma.has(key)) continue;
+      seenLemma.add(key);
+      distractors.push(w);
+      if (distractors.length === 2) break;
+    }
 
     const allChoices = [...distractors, word].sort(() => 0.5 - Math.random());
     setChoices(allChoices);

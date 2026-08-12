@@ -3,36 +3,48 @@ import { REL, buildRelations, primaryRelation } from './relations';
 
 export const SPARQL_ENDPOINT_URL = "https://query.wikidata.org/sparql";
 
-export const LANGUAGES = [
-  { qid: 'Q1860',  code: 'en',  name: 'English' },
-  { qid: 'Q1321',  code: 'es',  name: 'Spanish' },
-  { qid: 'Q150',   code: 'fr',  name: 'French' },
-  { qid: 'Q188',   code: 'de',  name: 'German' },
-  { qid: 'Q652',   code: 'it',  name: 'Italian' },
-  { qid: 'Q5146',  code: 'pt',  name: 'Portuguese' },
-  { qid: 'Q9035',  code: 'da',  name: 'Danish' },
-  { qid: 'Q9027',  code: 'sv',  name: 'Swedish' },
-  { qid: 'Q25167', code: 'nb',  name: 'Norwegian (Bokmål)' },
-  { qid: 'Q9168',  code: 'fa',  name: 'Persian' },
-  { qid: 'Q13955', code: 'ar',  name: 'Arabic' },
-  { qid: 'Q11051', code: 'hi',  name: 'Hindi / Urdu (Hindustani)' },
-  { qid: 'Q58635', code: 'pa',  name: 'Punjabi' },
-  { qid: 'Q36236', code: 'ml',  name: 'Malayalam' },
-  { qid: 'Q5885',  code: 'ta',  name: 'Tamil' },
-  { qid: 'Q9240',  code: 'id',  name: 'Indonesian' },
-  { qid: 'Q9237',  code: 'ms',  name: 'Malay' },
-  { qid: 'Q5287',  code: 'ja',  name: 'Japanese' },
-  { qid: 'Q7737',  code: 'ru',  name: 'Russian' },
-  { qid: 'Q8798',  code: 'uk',  name: 'Ukrainian' },
-  { qid: 'Q809',   code: 'pl',  name: 'Polish' },
-  { qid: 'Q9056',  code: 'cs',  name: 'Czech' },
-  { qid: 'Q256',   code: 'tr',  name: 'Turkish' },
-  { qid: 'Q143',   code: 'eo',  name: 'Esperanto' },
-  { qid: 'Q397',   code: 'la',  name: 'Latin' },
-  { qid: 'Q12107', code: 'br',  name: 'Breton' },
-  { qid: 'Q8752',  code: 'eu',  name: 'Basque' },
-  { qid: 'Q1412',  code: 'yi',  name: 'Yiddish' }
-];
+import { ALL_LANGUAGES } from './languageData';
+
+/**
+ * Every language that actually has lexemes on Wikidata (generated - see
+ * scripts/gen-languages.md). Each entry carries its lexeme count so the picker
+ * can tell the learner where there is enough data to work with.
+ */
+/**
+ * Wikidata's own label is not always what a learner will type. Hindi and Urdu
+ * speakers look for "Hindi"/"Urdu", but the lexemes live under "Hindustani";
+ * Norwegians look for "Norwegian", but the data is under "Bokmål". These
+ * overrides keep the picker findable without editing the generated file.
+ */
+const LANGUAGE_DISPLAY = {
+  Q11051: { name: 'Hindustani (Hindi / Urdu)', aliases: ['hindi', 'urdu', 'hindustani'] },
+  Q25167: { name: 'Norwegian Bokmål',          aliases: ['norwegian', 'bokmal', 'bokmål', 'norsk'] },
+  Q25164: { name: 'Norwegian Nynorsk',         aliases: ['norwegian', 'nynorsk', 'norsk'] },
+  Q36510: { name: 'Greek (modern)',            aliases: ['greek'] },
+  Q9168:  { name: 'Persian (Farsi)',           aliases: ['persian', 'farsi'] },
+  Q9288:  { name: 'Hebrew',                    aliases: ['hebrew', 'ivrit'] },
+  Q9610:  { name: 'Bengali (Bangla)',          aliases: ['bengali', 'bangla'] },
+};
+
+export const LANGUAGES = ALL_LANGUAGES.map(l => {
+  const override = LANGUAGE_DISPLAY[l.qid];
+  return override ? { ...l, name: override.name, aliases: override.aliases } : l;
+});
+
+// Index maps: LANGUAGES is ~1.5k entries and the word pipeline looks languages
+// up per row, so a linear .find() there would be O(words x languages).
+export const LANG_BY_QID = new Map(LANGUAGES.map(l => [l.qid, l]));
+export const LANG_BY_CODE = new Map();
+LANGUAGES.forEach(l => { if (l.code && !LANG_BY_CODE.has(l.code)) LANG_BY_CODE.set(l.code, l); });
+
+/** Enough data to be worth offering as a learning language. */
+export const MIN_USEFUL_LEXEMES = 50;
+
+/** Look up a language, transparently remapping retired/empty QIDs. */
+export function getLanguage(qid) {
+  if (!qid) return null;
+  return LANG_BY_QID.get(qid) || LANG_BY_QID.get(resolveLangQid(qid)) || null;
+}
 
 export const PRESETS = [
   { label: 'Punjabi → Hindi/Urdu', known: ['Q58635'], target: 'Q11051' },
@@ -108,7 +120,7 @@ export function getIpaSimilarity(a, b) {
 // its own deadline instead of leaving the app spinning forever.
 const SPARQL_TIMEOUT_MS = 45000;
 
-async function runSparqlQuery(sparql, timeoutMs = SPARQL_TIMEOUT_MS) {
+export async function runSparqlQuery(sparql, timeoutMs = SPARQL_TIMEOUT_MS) {
   const url = SPARQL_ENDPOINT_URL + '?query=' + encodeURIComponent(sparql);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -209,6 +221,31 @@ export async function fetchBridgeWordsRaw(knownLangs, targetLangQid) {
   `;
 
   return runSparqlQuery(sparql);
+}
+
+/**
+ * Exact number of target lexemes that share a concept with a known language.
+ *
+ * This CANNOT be derived by counting the loaded word list: that list is capped at
+ * WL_MAX_BRIDGES rows, so for languages such as English (32.5k lexeme-concept
+ * pairs) or French (21.1k) it is a truncated, arbitrarily ordered sample.
+ * Dividing a truncated numerator by a full denominator understates the overlap.
+ */
+export async function fetchBridgeCount(knownLangs, targetLangQid) {
+  const knownValues = (knownLangs || []).map(l => 'wd:' + l.qid).join(' ');
+  if (!knownValues) return null;
+  const sparql = `
+    SELECT (COUNT(DISTINCT ?t) AS ?n) WHERE {
+      ?t dct:language wd:${targetLangQid} ;
+         ontolex:sense/wdt:P5137 ?c .
+      ?k dct:language ?kl ;
+         ontolex:sense/wdt:P5137 ?c .
+      VALUES ?kl { ${knownValues} }
+    }
+  `;
+  const data = await runSparqlQuery(sparql, 40000);
+  const rows = bindings(data);
+  return rows.length ? parseInt(rows[0].n.value, 10) || 0 : null;
 }
 
 const DERIVATION_LIMIT = 20000;
@@ -434,8 +471,8 @@ export function clearWordsCache(cacheKey) {
 export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
   const knownQids = [...new Set((knownLangQids || []).map(resolveLangQid))];
   const targetLangQid = resolveLangQid(targetLangQidRaw);
-  const knownLangs = LANGUAGES.filter(l => knownQids.includes(l.qid));
-  const targetLang = LANGUAGES.find(l => l.qid === targetLangQid);
+  const knownLangs = knownQids.map(q => LANG_BY_QID.get(q)).filter(Boolean);
+  const targetLang = LANG_BY_QID.get(targetLangQid);
 
   if (!knownLangs.length || !targetLang) {
     throw new Error("Invalid languages selected");
@@ -457,8 +494,12 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
     return { results: { bindings: [] } };
   };
 
-  const [totalTargetMapped, rawBridges, rawTargetDeriv, ...rawKnownDeriv] = await Promise.all([
+  const [totalTargetMapped, bridgeCount, rawBridges, rawTargetDeriv, ...rawKnownDeriv] = await Promise.all([
     fetchTotalTargetMapped(targetLangQid),
+    fetchBridgeCount(knownLangs, targetLangQid).catch(e => {
+      console.warn('WikiLinkua: exact bridge count unavailable -', e.message);
+      return null;    // the UI hides the percentage rather than showing a wrong one
+    }),
     fetchBridgeWordsRaw(knownLangs, targetLangQid),
     fetchDerivationEdges(targetLangQid).catch(softFail('target derivation data')),
     ...knownLangs.map(l =>
@@ -540,7 +581,7 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
     const lexemeId = row.targetLex.value.split('/').pop();
 
     const firstKnownPair = knownPairs[0] || {};
-    const firstKnownLang = LANGUAGES.find(l => l.code === firstKnownPair.code) || {};
+    const firstKnownLang = LANG_BY_CODE.get(firstKnownPair.code) || {};
 
     const targetLemma = row.targetLemma ? row.targetLemma.value : '';
 
@@ -683,9 +724,12 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
     }
 
     if (knownCode) {
-      const knownLangObj = LANGUAGES.find(l => l.code === knownCode) || {};
+      const knownLangObj = LANG_BY_CODE.get(knownCode) || {};
       const synId = `curated-${knownCode}-${targetCode}-${targetLemma.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
       curatedList.push({
+        // Hand-curated, not a Wikidata lexeme: excluded from every count that is
+        // measured against the Wikidata lexeme population.
+        source: 'curated',
         lexemeId: synId,
         lemma: targetLemma,
         targetLang: targetLangQid,
@@ -721,7 +765,14 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
 
   const allWords = Array.from(finalMap.values());
 
-  const result = { words: allWords, totalTargetMapped };
+  const result = {
+    words: allWords,
+    totalTargetMapped,
+    bridgeCount,
+    // The bridge query is capped; when it comes back full the list is a sample.
+    truncated: bridgeRows.length >= WL_MAX_BRIDGES,
+    loadedLexemes: bridgesList.length,
+  };
   const fresh = readWordsCache();
   fresh[cacheKey] = { ts: Date.now(), data: result };
   writeWordsCache(fresh);

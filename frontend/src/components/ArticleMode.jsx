@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { FlashcardExercise } from './Flashcards';
-import { LANGUAGES } from '../utils/sparql';
+import { getLanguage } from '../utils/sparql';
 
 const CARD = { border: '1px solid #c8ccd1', borderRadius: '2px', background: '#fff', padding: '24px' };
 const BTN_PRIMARY = { padding: '10px 20px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer', fontSize: '14px' };
@@ -18,6 +18,29 @@ function Spinner({ msg }) {
 }
 
 const stripHtml = (s) => s.replace(/<[^>]*>/g, '');
+
+/**
+ * Which of the learner's languages this article already exists in.
+ *
+ * Wikipedia language codes are not always the code we use for a language, so we
+ * match on the app code plus any known Wikipedia-side variants (Hindustani is
+ * offered as one language here but is hi/ur on Wikipedia).
+ */
+const WIKI_CODE_VARIANTS = {
+  hi: ['hi', 'ur'],     // Hindustani -> Hindi and Urdu Wikipedias
+  nb: ['nb', 'no'],     // Bokmål -> both the nb and legacy no Wikipedias
+  fa: ['fa'],
+};
+
+function wikiCodesFor(lang) {
+  return WIKI_CODE_VARIANTS[lang.code] || [lang.code];
+}
+
+function matchKnownLangLinks(page, knownLangs) {
+  const links = page?.langlinks || [];
+  const wanted = new Set(knownLangs.flatMap(wikiCodesFor));
+  return links.filter(l => wanted.has(l.lang));
+}
 const sentenceCount = (text) => (text.match(/[.!?]/g) || []).length;
 
 async function wikiApiFetch(langCode, params) {
@@ -60,9 +83,9 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
   const [loadingRecs, setLoadingRecs] = useState(false);
   const loadedForRef = useRef(null);
 
-  const targetLang = LANGUAGES.find(l => l.qid === profile.targetLang);
+  const targetLang = getLanguage(profile.targetLang);
   const langCode = targetLang?.code || 'en';
-  const knownLangs = (profile.knownLangs || []).map(qid => LANGUAGES.find(l => l.qid === qid)).filter(Boolean);
+  const knownLangs = (profile.knownLangs || []).map(getLanguage).filter(Boolean);
   const wikiApi = (params) => wikiApiFetch(langCode, params);
 
   // Load recommendations once per target language when words are ready
@@ -79,8 +102,6 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
       try {
         const seeds = pickSeeds(words, progress);
         if (!seeds.length) return;
-
-        const knownCodes = knownLangs.map(l => l.code);
 
         // Run seed searches and WithoutInterwiki list in parallel
         const [seedSearches, noInterwikiData] = await Promise.all([
@@ -119,13 +140,13 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
         const seedTitles = seedCandidates.slice(0, 40).map(c => c.title);
         for (let i = 0; i < seedTitles.length; i += 20) {
           const chunk = seedTitles.slice(i, i + 20);
-          const batchParams = {
+          // No `lllang` filter here either - it only accepts one code, and
+          // passing several silently returns nothing.
+          const data = await wikiApiFetch(langCode, {
             action: 'query', prop: 'extracts|langlinks',
             exintro: '1', explaintext: '1', lllimit: 'max',
             titles: chunk.join('|'),
-          };
-          if (knownCodes.length) batchParams.lllang = knownCodes.join('|');
-          const data = await wikiApiFetch(langCode, batchParams);
+          });
           Object.values(data.query?.pages || {}).forEach(p => pageMap.set(p.title, p));
         }
 
@@ -144,7 +165,11 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
         const seedFiltered = seedCandidates
           .map(c => {
             const page = pageMap.get(c.title);
-            return { ...c, extract: page?.extract || '', hasKnownLink: (page?.langlinks || []).length > 0 };
+            return {
+              ...c,
+              extract: page?.extract || '',
+              hasKnownLink: matchKnownLangLinks(page, knownLangs).length > 0,
+            };
           })
           .filter(c => sentenceCount(c.extract) >= MIN_SENTENCES);
 
@@ -192,18 +217,19 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
     setPhase('loading');
     setError(null);
     try {
-      const knownCodes = knownLangs.map(l => l.code);
-      const params = {
+      // NOTE: `lllang` takes a SINGLE language code. Passing "en|pa" makes the
+      // API return no langlinks at all, which used to be misread as "no article
+      // in your language exists" - wrong for articles as obvious as ഇന്ത്യ/India.
+      // Fetch every langlink instead and match locally.
+      const data = await wikiApi({
         action: 'query', prop: 'extracts|langlinks',
         exintro: '1', explaintext: '1',
         lllimit: 'max',
         titles: title,
-      };
-      if (knownCodes.length) params.lllang = knownCodes.join('|');
-      const data = await wikiApi(params);
+      });
       const page = Object.values(data.query?.pages || {})[0];
       setExtract(page?.extract || '');
-      setHasKnownLink((page?.langlinks || []).length > 0);
+      setHasKnownLink(matchKnownLangLinks(page, knownLangs).length > 0);
       setArticleTitle(title);
       setPhase('article');
     } catch (e) {
@@ -323,7 +349,7 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
                     </div>
                     {!rec.hasKnownLink && knownLangs.length > 0 && (
                       <div style={{ marginTop: '4px', fontSize: '11px', fontWeight: '600', color: '#a66800', borderTop: '1px solid #f0e0b0', paddingTop: '6px' }}>
-                        No {knownLangs[0].name} article yet
+                        Not in {knownLangs.length === 1 ? knownLangs[0].name : 'your languages'} yet
                       </div>
                     )}
                   </button>

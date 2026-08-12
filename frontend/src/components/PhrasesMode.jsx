@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
-import { LANGUAGES } from '../utils/sparql';
+import { getLanguage } from '../utils/sparql';
 import { playAudio } from '../utils/audio';
 import {
   fetchTatoebaPhrases, fetchP5831Phrases, rankPhrases, highlightSegments,
@@ -18,9 +18,9 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
   const [mtText, setMtText] = useState(null);
   const [mtLoading, setMtLoading] = useState(false);
 
-  const targetLang = LANGUAGES.find(l => l.qid === profile?.targetLang) || {};
+  const targetLang = getLanguage(profile?.targetLang) || {};
   const knownCodes = (profile?.knownLangs || [])
-    .map(qid => (LANGUAGES.find(l => l.qid === qid) || {}).code)
+    .map(qid => (getLanguage(qid) || {}).code)
     .filter(Boolean);
 
   // Words the learner has already started/finished learning -> their target lemmas.

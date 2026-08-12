@@ -28,6 +28,15 @@ def false_friends():
     return render_template("app.html")
 
 
+@main.route("/contribute")
+def contribute():
+    """Serve the React application on the Contribute (data gaps) view.
+
+    The audio recorder is a sub-page at /contribute/record.
+    """
+    return render_template("app.html")
+
+
 @main.route("/guide")
 def guide():
     """Serve the user guide."""

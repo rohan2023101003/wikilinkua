@@ -1,4 +1,4 @@
-import { LANGUAGES } from './sparql';
+import { getLanguage } from './sparql';
 
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
@@ -11,7 +11,7 @@ async function commonsApi(params) {
 }
 
 export function getLang(qid) {
-  return LANGUAGES.find(l => l.qid === qid) || null;
+  return getLanguage(qid);
 }
 
 export async function fetchVideosInLanguage(langName) {

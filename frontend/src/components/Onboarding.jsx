@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LANGUAGES } from '../utils/sparql';
+import { LANGUAGES, MIN_USEFUL_LEXEMES } from '../utils/sparql';
 import { deckWordCount } from '../utils/storage';
 
 export default function Onboarding({ profile, onSaveProfile }) {
@@ -8,6 +8,12 @@ export default function Onboarding({ profile, onSaveProfile }) {
 
   const [knownSearch, setKnownSearch] = useState('');
   const [targetSearch, setTargetSearch] = useState('');
+  // Wikidata has lexemes in ~1,500 languages, but most have only a handful.
+  // Default to the ones with enough data to learn from; the rest are one click away.
+  const [showAllKnown, setShowAllKnown] = useState(false);
+  const [showAllTarget, setShowAllTarget] = useState(false);
+
+  const MAX_RENDERED = 240;   // keep the DOM sane when "show all" is on
 
   const handleToggleKnown = (qid) => {
     if (knownLangs.includes(qid)) {
@@ -39,17 +45,33 @@ export default function Onboarding({ profile, onSaveProfile }) {
   const pairLabel = `${knownLangs.map(nameOf).join(' + ')} → ${nameOf(targetLang)}`;
   const savedWords = deckWordCount({ knownLangs, targetLang });
 
-  const filteredKnown = LANGUAGES.filter(lang =>
-    lang.name.toLowerCase().includes(knownSearch.toLowerCase()) ||
-    lang.code.toLowerCase().includes(knownSearch.toLowerCase())
-  );
+  const matches = (lang, term) => {
+    const q = term.trim().toLowerCase();
+    if (!q) return true;
+    return lang.name.toLowerCase().includes(q)
+      || (lang.code || '').toLowerCase().includes(q)
+      || (lang.aliases || []).some(a => a.includes(q))
+      || lang.qid.toLowerCase() === q;
+  };
 
-  const filteredTarget = LANGUAGES.filter(lang => 
-    !knownLangs.includes(lang.qid) && (
-      lang.name.toLowerCase().includes(targetSearch.toLowerCase()) ||
-      lang.code.toLowerCase().includes(targetSearch.toLowerCase())
-    )
-  );
+  // A language the learner already picked stays visible even when it is below the
+  // data threshold - otherwise their own selection would disappear from the list.
+  const visible = (lang, term, showAll, selectedQids) =>
+    matches(lang, term)
+    && (showAll || lang.lexemes >= MIN_USEFUL_LEXEMES || selectedQids.includes(lang.qid));
+
+  const filteredKnown = LANGUAGES
+    .filter(lang => visible(lang, knownSearch, showAllKnown, knownLangs))
+    .slice(0, MAX_RENDERED);
+
+  const filteredTarget = LANGUAGES
+    .filter(lang => !knownLangs.includes(lang.qid)
+      && visible(lang, targetSearch, showAllTarget, [targetLang]))
+    .slice(0, MAX_RENDERED);
+
+  const belowThreshold = LANGUAGES.filter(l => l.lexemes < MIN_USEFUL_LEXEMES).length;
+  const targetLangObj = LANGUAGES.find(l => l.qid === targetLang);
+  const thinTarget = !!targetLangObj && targetLangObj.lexemes < 500;
 
   return (
     <div className="fadeIn" style={{ maxWidth: '1200px', margin: '0 auto', color: '#202122' }}>
@@ -99,6 +121,13 @@ export default function Onboarding({ profile, onSaveProfile }) {
             </svg>
           </div>
 
+          <div style={{ marginLeft: '38px', fontSize: '12px', color: '#72777d' }}>
+            Showing languages with at least {MIN_USEFUL_LEXEMES} lexemes on Wikidata.{' '}
+            <button type="button" onClick={() => setShowAllKnown(v => !v)} style={{ background: 'none', border: 'none', padding: 0, color: '#3366cc', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>
+              {showAllKnown ? 'Hide sparse languages' : `Show all (${belowThreshold} more, mostly with only a few words)`}
+            </button>
+          </div>
+
           <div style={{ marginLeft: '38px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px', maxHeight: '350px', overflowY: 'auto', paddingRight: '8px' }}>
             {filteredKnown.map(lang => {
               const isSelected = knownLangs.includes(lang.qid);
@@ -129,14 +158,16 @@ export default function Onboarding({ profile, onSaveProfile }) {
                     style={{ cursor: 'pointer', accentColor: '#3366cc' }}
                   />
                   <span>{lang.name}</span>
-                  <span style={{ fontSize: '11px', color: '#72777d', fontWeight: 'normal', marginLeft: 'auto' }}>
-                    {lang.code.toUpperCase()}
+                  <span title={lang.lexemes.toLocaleString() + ' lexemes on Wikidata'} style={{ fontSize: '11px', color: '#72777d', fontWeight: 'normal', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                    {(lang.code || '').toUpperCase()} · {lang.lexemes.toLocaleString()}
                   </span>
                 </button>
               );
             })}
             {filteredKnown.length === 0 && (
-              <div style={{ color: '#72777d', fontStyle: 'italic', padding: '12px 0' }}>No languages found.</div>
+              <div style={{ color: '#72777d', fontStyle: 'italic', padding: '12px 0' }}>
+                No languages found{!showAllKnown ? ' with enough data - try "show all".' : '.'}
+              </div>
             )}
           </div>
         </div>
@@ -174,6 +205,13 @@ export default function Onboarding({ profile, onSaveProfile }) {
             </svg>
           </div>
 
+          <div style={{ marginLeft: '38px', fontSize: '12px', color: '#72777d' }}>
+            Sorted by how much data Wikidata has.{' '}
+            <button type="button" onClick={() => setShowAllTarget(v => !v)} style={{ background: 'none', border: 'none', padding: 0, color: '#3366cc', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>
+              {showAllTarget ? 'Hide sparse languages' : 'Show every language with lexemes'}
+            </button>
+          </div>
+
           <div style={{ marginLeft: '38px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px', maxHeight: '350px', overflowY: 'auto', paddingRight: '8px' }}>
             {filteredTarget.map(lang => {
               const isSelected = targetLang === lang.qid;
@@ -204,15 +242,15 @@ export default function Onboarding({ profile, onSaveProfile }) {
                     style={{ cursor: 'pointer', accentColor: '#3366cc' }}
                   />
                   <span>{lang.name}</span>
-                  <span style={{ fontSize: '11px', color: '#72777d', fontWeight: 'normal', marginLeft: 'auto' }}>
-                    {lang.code.toUpperCase()}
+                  <span title={lang.lexemes.toLocaleString() + ' lexemes on Wikidata'} style={{ fontSize: '11px', color: '#72777d', fontWeight: 'normal', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                    {(lang.code || '').toUpperCase()} · {lang.lexemes.toLocaleString()}
                   </span>
                 </button>
               );
             })}
             {filteredTarget.length === 0 && (
               <div style={{ color: '#72777d', fontStyle: 'italic', padding: '12px 0' }}>
-                No target languages found (excluding known languages).
+                No target languages found{!showAllTarget ? ' with enough data - try "show all".' : ''}.
               </div>
             )}
           </div>
@@ -224,6 +262,23 @@ export default function Onboarding({ profile, onSaveProfile }) {
             ? `You already have ${savedWords} word${savedWords === 1 ? '' : 's'} in progress for ${pairLabel}. Your progress for every other pair is kept safe too.`
             : `${pairLabel} is a fresh start - you'll begin at 0%. Progress for pairs you've studied before is kept and restored when you switch back.`}
         </div>
+
+        {/* Honest expectations before they commit to a pair */}
+        {(savedWords > 0 || thinTarget) && (
+          <div style={{ margin: '0 auto', maxWidth: '760px', width: '100%' }}>
+            {savedWords > 0 && (
+              <p style={{ fontSize: '14px', color: '#0e7a63', background: '#e9f6f2', border: '1px solid #a3dcd0', borderRadius: '2px', padding: '10px 14px', margin: '0 0 10px' }}>
+                You already have progress on this pair - {savedWords} word{savedWords === 1 ? '' : 's'} saved. It will pick up where you left off.
+              </p>
+            )}
+            {thinTarget && (
+              <p style={{ fontSize: '14px', color: '#886600', background: '#fef6e7', border: '1px solid #f2d9a0', borderRadius: '2px', padding: '10px 14px', margin: 0 }}>
+                {targetLangObj.name} has only {targetLangObj.lexemes.toLocaleString()} lexemes on Wikidata, so expect few words and few links.
+                That is a data gap, not a bug - the Contribute tab shows exactly what is missing and how to add it.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Submit */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0 32px' }}>

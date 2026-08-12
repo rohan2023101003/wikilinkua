@@ -4,7 +4,7 @@ export function MatchPairsExercise({ words, onComplete }) {
   const [leftItems, setLeftItems] = useState([]);
   const [rightItems, setRightItems] = useState([]);
   const [selectedLeft, setSelectedLeft] = useState(null); // lexemeId
-  const [selectedRight, setSelectedRight] = useState(null); // gloss string
+  const [selectedRight, setSelectedRight] = useState(null); // { lexemeId, gloss }
   
   const [matchedLeft, setMatchedLeft] = useState(new Set());
   const [matchedRight, setMatchedRight] = useState(new Set());
@@ -38,7 +38,7 @@ export function MatchPairsExercise({ words, onComplete }) {
   };
 
   const handleRightClick = (item) => {
-    if (matchedRight.has(item.gloss) || wrongRight) return;
+    if (matchedRight.has(item.lexemeId) || wrongRight) return;
     setSelectedRight(item);
     
     // Check if we have a match
@@ -51,7 +51,7 @@ export function MatchPairsExercise({ words, onComplete }) {
     if (leftId === rightItem.lexemeId) {
       // Correct Match!
       const newMatchedLeft = new Set(matchedLeft).add(leftId);
-      const newMatchedRight = new Set(matchedRight).add(rightItem.gloss);
+      const newMatchedRight = new Set(matchedRight).add(rightItem.lexemeId);
       
       setMatchedLeft(newMatchedLeft);
       setMatchedRight(newMatchedRight);
@@ -67,7 +67,7 @@ export function MatchPairsExercise({ words, onComplete }) {
     } else {
       // Wrong Match
       setWrongLeft(leftId);
-      setWrongRight(rightItem.gloss);
+      setWrongRight(rightItem.lexemeId);
       setSelectedLeft(null);
       setSelectedRight(null);
       
@@ -148,9 +148,9 @@ export function MatchPairsExercise({ words, onComplete }) {
           {/* Right Column (Gloss Meanings) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
             {rightItems.map((item, idx) => {
-              const isSelected = selectedRight?.gloss === item.gloss;
-              const isMatched = matchedRight.has(item.gloss);
-              const isWrong = wrongRight === item.gloss;
+              const isSelected = selectedRight?.lexemeId === item.lexemeId;
+              const isMatched = matchedRight.has(item.lexemeId);
+              const isWrong = wrongRight === item.lexemeId;
 
               let btnStyle = {
                 padding: '16px 20px',
@@ -183,7 +183,7 @@ export function MatchPairsExercise({ words, onComplete }) {
 
               return (
                 <div 
-                  key={idx} 
+                  key={item.lexemeId} 
                   onClick={() => handleRightClick(item)} 
                   style={btnStyle}
                   className="quiz-option-button"
@@ -209,14 +209,22 @@ export function MatchPairs({ words, onNavigate }) {
   const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
-    // Partition words into sets of 3
+    // Partition words into sets of 3. Two tiles showing the same text would be
+    // unmatchable by eye, so a word only joins a set with a distinct lemma AND
+    // a distinct gloss.
     const eligible = words.filter(w => w.concept && w.gloss);
     const shuffled = [...eligible].sort(() => 0.5 - Math.random());
-    
+
     const generatedSets = [];
-    for (let i = 0; i < shuffled.length; i += 3) {
-      if (i + 3 <= shuffled.length) {
-        generatedSets.push(shuffled.slice(i, i + 3));
+    let current = [];
+    const norm = (v) => (v || '').trim().toLowerCase();
+    for (const w of shuffled) {
+      const clashes = current.some(o => norm(o.gloss) === norm(w.gloss) || norm(o.lemma) === norm(w.lemma));
+      if (clashes) continue;
+      current.push(w);
+      if (current.length === 3) {
+        generatedSets.push(current);
+        current = [];
       }
     }
 

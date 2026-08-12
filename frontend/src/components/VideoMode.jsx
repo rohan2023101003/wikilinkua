@@ -3,6 +3,8 @@ import { FlashcardExercise } from './Flashcards';
 import { getLang, fetchVideosInLanguage, fetchVideoThumbnails, checkSubtitleTracks, fetchSubtitleRaw, srtToVttBlob, extractLemmas } from '../utils/video';
 
 const PAGE_SIZE = 24;
+// Fallback subtitle language when the learner's own languages have no track.
+const SUPPORT_LANG = { code: 'en', name: 'English' };
 const CARD = { border: '1px solid #c8ccd1', borderRadius: '2px', background: '#fff', padding: '24px' };
 const BTN_PRIMARY = { padding: '10px 20px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer', fontSize: '14px' };
 const BTN_GHOST = { padding: '10px 20px', borderRadius: '2px', background: '#fff', color: '#202122', border: '1px solid #c8ccd1', fontWeight: '600', cursor: 'pointer', fontSize: '14px' };
@@ -19,6 +21,7 @@ function Spinner({ msg }) {
 
 function applyFilter(meta, filter) {
   if (filter === 'known-subs') return meta.filter(v => v.audioIsTarget && v.hasKnownSubs);
+  if (filter === 'support-subs') return meta.filter(v => v.audioIsTarget && v.isSupportLang);
   if (filter === 'target-subs') return meta.filter(v => v.audioIsTarget && v.hasTargetSubs);
   if (filter === 'known-audio-flashcards') return meta.filter(v => v.audioIsKnown && !v.audioIsTarget && v.hasTargetSubs);
   return meta;
@@ -97,17 +100,25 @@ export default function VideoMode({ profile, words, onAnswerWord, onNavigate }) 
       }
 
       setLoadingMsg(`Checking subtitle tracks for ${allTitles.length} videos...`);
-      const langCodes = [targetLang.code, ...knownLangs.map(l => l.code)];
+      // English is checked as a fallback support language: most Commons subtitles
+      // are English, so for a pair like Punjabi->Malayalam it is often the only
+      // way to make a video usable at all. It is only used when none of the
+      // learner's own languages has a track.
+      const knownCodes = knownLangs.map(l => l.code);
+      const langCodes = [...new Set([targetLang.code, ...knownCodes, SUPPORT_LANG.code])];
       const subTracks = await checkSubtitleTracks(allTitles, langCodes);
 
       const meta = allTitles.map(title => {
         const tracks = subTracks.get(title) || new Set();
         const knownSubLang = knownLangs.find(l => tracks.has(l.code)) || null;
+        const supportOnly = !knownSubLang && !knownCodes.includes(SUPPORT_LANG.code)
+          && tracks.has(SUPPORT_LANG.code);
         return {
           title,
           hasTargetSubs: tracks.has(targetLang.code),
           hasKnownSubs: !!knownSubLang,
-          knownSubLang,
+          knownSubLang: knownSubLang || (supportOnly ? SUPPORT_LANG : null),
+          isSupportLang: supportOnly,
           audioIsTarget: audioTargetSet.has(title),
           audioIsKnown: knownAudioSet.has(title),
         };
@@ -231,6 +242,14 @@ export default function VideoMode({ profile, words, onAnswerWord, onNavigate }) 
       { id: 'target-subs', label: `Flashcards · ${targetLang?.name} audio (${videoMeta.filter(v => v.audioIsTarget && v.hasTargetSubs).length})` },
       { id: 'known-audio-flashcards', label: `Flashcards · ${knownLangNames} audio (${videoMeta.filter(v => v.audioIsKnown && !v.audioIsTarget && v.hasTargetSubs).length})` },
     ];
+    // Only offer the English fallback when it actually adds videos.
+    const supportCount = videoMeta.filter(v => v.audioIsTarget && v.isSupportLang).length;
+    if (supportCount > 0) {
+      filters.splice(2, 0, {
+        id: 'support-subs',
+        label: `${SUPPORT_LANG.name} subs (${supportCount})`,
+      });
+    }
     const filtered = applyFilter(videoMeta, gridFilter);
     const visible = filtered.slice(0, displayLimit);
     const hasMore = filtered.length > displayLimit;

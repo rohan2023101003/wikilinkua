@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { LANGUAGES } from '../utils/sparql';
+import { getLanguage } from '../utils/sparql';
 
 export default function WordsStatus({ words, progress, onNavigate }) {
   const [activeTab, setActiveTab] = useState('Known'); // 'Known' | 'Learning' | 'New'
 
-  const targetLangObj = LANGUAGES.find(l => l.qid === words[0]?.targetLang) || {};
+  const targetLangObj = getLanguage(words[0]?.targetLang) || {};
 
   // Classify words
   const knownWords = [];
@@ -16,15 +16,9 @@ export default function WordsStatus({ words, progress, onNavigate }) {
     if (!srs || srs.boxLevel === undefined) {
       newWords.push(w);
     } else if (srs.boxLevel >= 3) {
-      // Map percentage progress based on box level
-      let pct = 70;
-      if (srs.boxLevel === 4) pct = 88;
-      if (srs.boxLevel === 5) pct = 100;
-      knownWords.push({ ...w, pct });
+      knownWords.push({ ...w, box: srs.boxLevel, dueDate: srs.dueDate });
     } else {
-      let pct = 20;
-      if (srs.boxLevel === 2) pct = 45;
-      learningWords.push({ ...w, pct });
+      learningWords.push({ ...w, box: srs.boxLevel, dueDate: srs.dueDate });
     }
   });
 
@@ -123,12 +117,16 @@ export default function WordsStatus({ words, progress, onNavigate }) {
                   <span style={{ fontSize: '12px', color: '#54595d', fontWeight: '500' }}>Leitner Box Status</span>
                   
                   {activeTab !== 'New' ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    /* The box number is a real fact about the schedule. The old
+                       "70% / 88% learned" was invented precision - nothing measures
+                       how much of a word you know. */
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                         title={w.dueDate ? 'Next review: ' + new Date(w.dueDate).toLocaleDateString() : ''}>
                       <span style={{ fontSize: '13px', fontWeight: '700', color: activeTab === 'Known' ? '#0e7a63' : '#3366cc' }}>
-                        {w.pct}%
+                        Box {w.box}/5
                       </span>
                       <div style={{ width: '48px', height: '6px', borderRadius: '1px', background: '#eaecf0', overflow: 'hidden' }}>
-                        <div style={{ width: `${w.pct}%`, height: '100%', background: activeTab === 'Known' ? '#0e7a63' : '#3366cc' }} />
+                        <div style={{ width: `${(w.box / 5) * 100}%`, height: '100%', background: activeTab === 'Known' ? '#0e7a63' : '#3366cc' }} />
                       </div>
                     </div>
                   ) : (

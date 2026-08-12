@@ -147,6 +147,57 @@ regenerating never clobbers them.
 Because the list is ~1.5k entries, look languages up with `getLanguage(qid)` (map-backed
 and alias-aware) rather than `LANGUAGES.find(...)`, especially inside per-word loops.
 
+### Displayed statistics: never derive them from the word list
+
+`loadAndNormalizeWords` returns a **capped sample**. `WL_MAX_BRIDGES` limits the bridge query
+to 15,000 (lexeme, concept) rows and the query has no `ORDER BY`, so for English (32.5k pairs),
+French (21.1k) or Russian (15.1k) the returned rows are a truncated, engine-ordered subset.
+
+Consequences to respect:
+
+- **Any percentage measured against the whole language needs its own `COUNT` query.**
+  `fetchBridgeCount()` supplies the numerator for the overlap figure; `fetchTotalTargetMapped()`
+  supplies the denominator. Counting `words.filter(w => w.isBridge)` instead understates the
+  figure and is not even reproducible between loads.
+- When a count query fails it returns `null` and the UI **hides the figure**. Never fall back
+  to an approximation.
+- The `coverage` object (`{ bridgeCount, truncated, loadedLexemes }`) is threaded from `App`
+  into the views that show numbers. `truncated` drives the "this is a sample" notice.
+- Entries tagged `source: 'curated'` are hand-written false friends, not Wikidata lexemes.
+  Exclude them from anything counted against the Wikidata lexeme population.
+- Do not invent precision. The Progress page shows the real Leitner box (`Box 4/5`); it used to
+  show fabricated "70% / 88% learned" figures mapped from box levels, which measured nothing.
+
+### Routing
+
+The Flask app serves the same SPA for several paths and `viewFromPath()` in `App.jsx` decides
+which view opens. Keep the two in sync when adding routes.
+
+| Path | View |
+|---|---|
+| `/`, `/app/` | home |
+| `/wikilinkua/` | Words |
+| `/false-friends/` | Friend or Faux |
+| `/contribute` | Contribute (data gaps) |
+| `/contribute/record` | **server-rendered** audio recorder, not a SPA view |
+
+The startup effect must land on `viewFromPath()`; it previously forced `game-modes`, which
+silently broke every deep link.
+
+### Render smoke test
+
+`frontend/src/__smoke.jsx` renders every view with representative props, including awkward
+data (missing gloss, very long lemma, two words with the same gloss). An undefined variable in
+JSX shows the user a blank white screen and does **not** fail the build, so run this before
+pushing UI changes:
+
+```bash
+npx vite build --ssr src/__smoke.jsx --outDir ./.smoke && node .smoke/run.mjs
+```
+
+It only covers initial render — no effects, no interaction — so it catches blank screens, not
+logic bugs.
+
 ### Contribution gap finder
 
 `frontend/src/utils/gaps.js` holds the maintenance-task catalogue behind the Contribute

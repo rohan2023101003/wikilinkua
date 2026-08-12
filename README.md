@@ -118,7 +118,17 @@ and `list=querypage&qppage=WithoutInterwiki`.
 ### Progress
 Your vocabulary split into new / learning / known / due, driven by a **Leitner** schedule:
 6 boxes at 0, 1, 3, 7, 14 and 30 days. A word counts as "known" at box 3 — one correct
-answer moves it up one step, it does not jump straight to known.
+answer moves it up one step, it does not jump straight to known. Each word shows its real
+box (`Box 4/5`), not a percentage: nothing measures how much of a word you know.
+
+### A note on the numbers
+
+Every figure is measured exactly or not shown. **"Words with a link: X%"** is
+`exact count of linked words / exact count of mapped words`, both from their own `COUNT`
+queries — never from the loaded word list, which is capped at 15,000 rows and is a sample
+for data-rich languages. When the list is a sample the page says so, and when a count query
+fails the figure is hidden rather than approximated. Hand-curated false friends are labelled
+and excluded from Wikidata-derived counts.
 
 ---
 

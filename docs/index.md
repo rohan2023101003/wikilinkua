@@ -2,8 +2,13 @@
 
 ## Guides
 
-- [Developer guide](developer-guide.md)
-- [User guide](user-guide.md)
+- [User guide](user-guide.md) — how to learn with the app, what every term and number means,
+  and every way to contribute data back.
+- [Developer guide](developer-guide.md) — architecture, the relationship model, the rules for
+  displayed statistics, routing, and the render smoke test.
+- [In-app guide](/guide) — the short version, available from inside the app.
+- [README](../README.md) — the full reference: every learning mode, every contribution path,
+  and which Wikidata property or API powers each one.
 
 ## Policies
 

@@ -91,26 +91,94 @@
     </div>
 
     <div class="wl-panel">
-      <h2>Key terms in WikiLinkua</h2>
+      <h2>How words are linked &mdash; read this first</h2>
+      <p>
+        Wikidata connects words in several different ways, and they mean very different
+        things. WikiLinkua never blurs them: <strong>a shared meaning is not shared
+        history</strong>. Every link is labelled with what it actually claims.
+      </p>
       <ul>
-        <li><strong>Bridge word</strong>: a target-language word connected to something you already know through meaning (and often sound).</li>
-        <li><strong>Cognate</strong>: words related by origin across languages, marked from Wikidata cognate links.</li>
-        <li><strong>Friend / Faux</strong>: lookalike words across languages that are either true matches (friend) or misleading mismatches (faux / false friend).</li>
-        <li><strong>Phonetic match</strong>: words that sound similar enough to help memory even if spelling differs.</li>
+        <li><strong>Cognate</strong>: both words descend from the <em>same ancestor word</em>.
+          Found by following "derived from lexeme" (P5191) upwards from both sides until
+          the chains meet &mdash; for example a Malayalam and a Punjabi word that both come
+          from the same Persian root.</li>
+        <li><strong>Borrowed from your language</strong>: this word was taken directly from
+          a word you know. Also P5191, but a direct line of descent rather than a shared
+          ancestor.</li>
+        <li><strong>Source of your word</strong>: the reverse &mdash; a word you know came
+          from this one.</li>
+        <li><strong>Same meaning</strong>: a word for the same thing exists in a language you
+          know (P5137). This says <em>nothing</em> about the words being related. Most links
+          you will see are of this kind.</li>
+        <li><strong>Related meaning</strong>: the meanings are linked as synonym or antonym.</li>
+        <li><strong>False friend</strong>: looks like a word you know but means something else.</li>
+        <li><strong>Looks or sounds similar</strong>: only the shape or sound resembles a word
+          you know, with no recorded historical link. This is a <em>warning</em>, not a
+          relationship &mdash; it may be pure coincidence.</li>
+      </ul>
+      <p class="wl-note">
+        Only the first three claim the words share a history. A word for "animal" that happens
+        to point at the same concept as an English word is a translation, not a cognate.
+      </p>
+    </div>
+
+    <div class="wl-panel">
+      <h2>Other terms you will see</h2>
+      <ul>
+        <li><strong>Lexeme</strong>: Wikidata's entry for a word (id like <code>L1234</code>),
+          holding its spellings, forms and meanings.</li>
+        <li><strong>Sense</strong>: one meaning of a lexeme. A word with several meanings has
+          several senses.</li>
         <li><strong>Gloss</strong>: the short meaning label shown for a word.</li>
-        <li><strong>Leitner box</strong>: the spaced-repetition level used to decide when a word comes back for review.</li>
+        <li><strong>Mapped word</strong>: a target-language word whose meaning is linked to a
+          concept (P5137). Only mapped words can be matched across languages, so they are the
+          population every percentage is measured against.</li>
+        <li><strong>Linked word</strong>: a mapped word that also has a counterpart in one of
+          your languages.</li>
+        <li><strong>Leitner box</strong>: the spaced-repetition level (0&ndash;5) that decides
+          when a word comes back. Intervals are 0, 1, 3, 7, 14 and 30 days; a word counts as
+          known from box 3.</li>
+        <li><strong>Sample</strong>: for languages with a lot of data, one query cannot return
+          every word, so the browsable list is a sample. The app says so when that happens,
+          and percentages are still counted exactly and separately.</li>
+        <li><strong>Curated false friend</strong>: a well-known trap written by hand because
+          Wikidata does not record it yet. These are kept out of all Wikidata-derived counts.</li>
+      </ul>
+    </div>
+
+    <div class="wl-panel">
+      <h2>What the numbers mean</h2>
+      <ul>
+        <li><strong>"Words with a link: X%"</strong> &mdash; of all target-language words that
+          carry a concept link, this share also has one in a language you know. It is
+          <em>not</em> a claim that you already know that share of the language, and most of
+          those links are "same meaning", not shared origin. The exact counts are shown
+          underneath it.</li>
+        <li><strong>"Box 4/5"</strong> on the Progress page is the word's spaced-repetition
+          level, not a percentage of how well you know it &mdash; nothing measures that.</li>
+        <li><strong>Evidence counts</strong> on the Words page (how many cognates, borrowings
+          and so on) describe the words currently loaded. When the list is a sample, the page
+          says so.</li>
       </ul>
     </div>
 
     <div class="wl-panel">
       <h2>What each practice mode means</h2>
       <ul>
-        <li><strong>Bridge flashcards</strong>: reveal target words and meanings quickly.</li>
-        <li><strong>Friend or Faux</strong>: decide whether a similar-looking pair is a true match or a trap.</li>
-        <li><strong>Recall / Reverse recall</strong>: answer from meaning to word, or word to meaning.</li>
-        <li><strong>Odd one out / Match pairs</strong>: pattern drills to strengthen discrimination and recall.</li>
-        <li><strong>Phrases</strong>: sentence-level practice built from words you already know or are learning.</li>
-        <li><strong>Video / Article</strong>: learn from real Wikimedia media and text with subtitle or extract-based flashcards.</li>
+        <li><strong>Flashcards</strong>: reveal target words and meanings quickly.</li>
+        <li><strong>Friend or Faux</strong>: decide whether a similar-looking pair is a true
+          match or a trap.</li>
+        <li><strong>Recall / Reverse recall</strong>: answer from word to meaning, or meaning
+          to word.</li>
+        <li><strong>Odd one out</strong>: three words share a recorded history with words you
+          know and one does not. You get one guess, then the answer is shown with the reason.</li>
+        <li><strong>Match pairs</strong>: pair words with their meanings against the clock.</li>
+        <li><strong>Phrases</strong>: sentence practice built from words you already know or
+          are learning.</li>
+        <li><strong>Video / Article</strong>: learn from real Wikimedia media and text, with
+          subtitle- or extract-based flashcards. If none of your languages has subtitles for a
+          video, English is offered as a <strong>support language</strong> &mdash; for many
+          language pairs that is the only thing that makes a video usable.</li>
       </ul>
     </div>
 
@@ -118,11 +186,58 @@
       <h2>What the main labels mean</h2>
       <ul>
         <li><strong>New / unseen</strong>: you have not answered the word yet.</li>
-        <li><strong>Learning</strong>: you have started practicing the word, but it is not mastered yet.</li>
-        <li><strong>Known</strong>: the word has crossed the mastery threshold.</li>
+        <li><strong>Learning</strong>: you have started practicing the word, but it is not
+          mastered yet.</li>
+        <li><strong>Known</strong>: the word has reached box 3 or above.</li>
         <li><strong>Due for review</strong>: the word is ready to come back into practice.</li>
       </ul>
-      <p class="wl-note">A single correct answer does not usually make a word “known”; it normally moves the word up one step at a time.</p>
+      <p class="wl-note">A single correct answer does not usually make a word &ldquo;known&rdquo;;
+        it normally moves the word up one box at a time.</p>
+    </div>
+
+    <div class="wl-panel">
+      <h2>Choosing languages</h2>
+      <p>
+        The picker lists every language that has words in Wikidata &mdash; around 1,560 &mdash;
+        with the number of words each one has, because that number is the honest predictor of
+        how much the app can teach you. Languages with very little data are hidden behind
+        &ldquo;show all&rdquo;.
+      </p>
+      <p>
+        A few languages live under a different name in Wikidata than you might expect: Hindi
+        and Urdu words are stored under <strong>Hindustani</strong>, and Norwegian under
+        <strong>Bokm&aring;l</strong>. Searching for "Hindi" or "Norwegian" will still find them.
+      </p>
+      <p class="wl-note">
+        Progress is saved <strong>per language pair</strong>. If you learn some French and then
+        switch to Malayalam, Malayalam starts fresh &mdash; and your French is exactly where you
+        left it when you switch back. Nothing is overwritten.
+      </p>
+    </div>
+
+    <div class="wl-panel">
+      <h2>Contributing back</h2>
+      <p>
+        WikiLinkua can only teach what Wikidata knows, so the <a href="/contribute">Contribute</a>
+        page measures your language live and lists what is missing, most important first. Each
+        task says what it unlocks for learners, how many words are affected, and links straight
+        to the words on Wikidata so you can fix them.
+      </p>
+      <ul>
+        <li>Words with no meaning recorded, or no concept link &mdash; these are invisible to learners.</li>
+        <li>Words with no <strong>derived from lexeme</strong> statement &mdash; the only thing that
+          lets the app show a genuine cognate.</li>
+        <li>Words with no pronunciation or no IPA. You can
+          <a href="/contribute/record">record a pronunciation</a> yourself and publish it to
+          Wikimedia Commons.</li>
+        <li>Senses with no example sentence, and words with no inflected forms.</li>
+        <li>Grammatical gender problems &mdash; the app checks whether your language actually uses
+          gender before suggesting anything, and flags stray gender statements as likely errors.</li>
+      </ul>
+      <p>
+        Article mode links to Content Translation when an article is missing in your language,
+        and Video mode shows which Commons videos still need subtitles.
+      </p>
     </div>
 
     <div class="wl-panel">

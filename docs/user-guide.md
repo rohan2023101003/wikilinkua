@@ -39,13 +39,35 @@ translation, not a cognate.
 
 ## Core terms
 
-- Bridge word: a target-language word with any of the links above to a language you know.
-- Gloss: the short meaning label shown for a word.
-- Leitner box: the spaced-repetition level used to schedule the next review.
+- **Lexeme**: Wikidata's entry for a word (id like `L1234`), holding its spellings, forms and meanings.
+- **Sense**: one meaning of a lexeme. A word with several meanings has several senses.
+- **Gloss**: the short meaning label shown for a word.
+- **Bridge word**: a target-language word with any of the links above to a language you know.
+- **Mapped word**: a target-language word whose sense is linked to a concept (P5137). Only
+  mapped words can be matched across languages, so they are the population every percentage
+  is measured against.
+- **Linked word**: a mapped word that also has a counterpart in one of your languages.
+- **Curated false friend**: a well-known trap written by hand because Wikidata does not record
+  it yet. Kept out of every Wikidata-derived count and labelled where it appears.
+- **Sample**: for data-rich languages a single query cannot return every word, so the browsable
+  list is a sample. The app says so when that happens.
+- **Leitner box**: the spaced-repetition level (0-5) that schedules the next review. Intervals
+  are 0, 1, 3, 7, 14 and 30 days.
 - New word / unseen word: a word you have not answered yet.
 - Learning word: a word you have started practicing but have not mastered yet.
-- Known word: a word that has reached the mastery threshold in the Leitner system.
+- Known word: a word that has reached box 3 or above.
 - Due for review: a word whose review time has arrived or passed.
+
+## What the numbers mean
+
+Every figure in the app is either measured exactly or not shown at all.
+
+| Figure | What it actually says |
+|---|---|
+| **"Words with a link: X%"** | Of all target-language words carrying a concept link, this share also has one in a language you know. It is **not** a claim that you know that share of the language, and most of those links are "same meaning", not shared origin. The exact counts are printed underneath. If the count cannot be fetched, the app shows nothing rather than a guess. |
+| **"Box 4/5"** (Progress) | The word's spaced-repetition level. It is **not** a percentage of how well you know the word — nothing measures that. Hover for the next review date. |
+| **Evidence counts** (Words) | How many cognates, borrowings and so on are among the words **currently loaded**. When the list is a sample, the page says so. |
+| **Lexeme counts** (language picker) | How many words Wikidata has for that language — the honest predictor of how much the app can teach you. |
 
 ## Practice mode glossary
 
@@ -78,6 +100,9 @@ Use Progress to see how many words are new, learning, known, or due for review.
 ### Video
 
 Use Video to browse Wikimedia Commons videos and turn subtitle-covered videos into flashcards.
+When none of your own languages has a subtitle track for a video, English is offered as a
+**support language**, because most Commons subtitles are English and for many language pairs
+that is the only thing that makes a video usable at all.
 
 ### Article
 

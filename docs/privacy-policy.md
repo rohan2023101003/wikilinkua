@@ -7,7 +7,7 @@ WikiLinkua is built to minimize data collection. The current app stores the lear
 ## What we store
 
 - selected known languages and target language,
-- local word progress and phrase review state,
+- local word progress and phrase review state, kept separately for each language pair you study,
 - temporary session state for login and Commons uploads,
 - optional Wikimedia username and id when the user signs in.
 

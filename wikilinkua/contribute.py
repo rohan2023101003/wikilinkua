@@ -111,19 +111,39 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username,
         "User-Agent": "WikiLinkua/1.0 (https://wikilinkua.toolforge.org)",
     })
 
-    # 1) Fetch a CSRF token. With an identity-only token (no edit/upload grant),
-    #    the API returns the anonymous token "+\\" - our signal that uploads
-    #    aren't permitted yet.
+    # 1) Fetch a CSRF token. *How* this fails identifies the problem precisely,
+    #    so report the specific cause rather than one vague message.
     tok = sess.get(api_url, params={
         "action": "query", "meta": "tokens", "type": "csrf", "format": "json",
     }, timeout=20).json()
-    csrf = tok.get("query", {}).get("tokens", {}).get("csrftoken", "")
-    if not csrf or csrf == "+\\":
+
+    api_error = tok.get("error", {})
+    code_ = api_error.get("code", "")
+    if code_ in ("readapidenied", "mwoauth-invalid-authorization",
+                 "mwoauth-invalid-authorization-invalid-user"):
         return {
             "ok": False,
-            "message": ("Upload permission isn't granted yet - the OAuth consumer "
-                        "in use has no 'upload' grant. Your recording still works; "
-                        "log out and back in if the consumer was just updated."),
+            "message": (
+                "Your login carries no API permission, so Commons refuses the request "
+                "before the upload is even attempted (API said: " + code_ + "). "
+                "Either this deployment is using an identity-only OAuth consumer, or "
+                "your session was created before the upload grants existed. "
+                "Log out and log in again first; if it still fails, the deployed "
+                "OAUTH_CLIENT_ID / OAUTH_SCOPES need updating."
+            ),
+        }
+    if api_error:
+        return {"ok": False, "message": "Commons rejected the request: "
+                + (api_error.get("info") or code_ or "unknown error")}
+
+    csrf = tok.get("query", {}).get("tokens", {}).get("csrftoken", "")
+    if not csrf or csrf == "+\\":
+        # An anonymous token means Commons saw the request as logged out.
+        return {
+            "ok": False,
+            "message": ("Commons treated this request as logged out, so the upload was "
+                        "refused. Log out of WikiLinkua and log in again to get a fresh "
+                        "token that includes the upload permission."),
         }
 
     safe_word = _safe_title_part(word, "word")

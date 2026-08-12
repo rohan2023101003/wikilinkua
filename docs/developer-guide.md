@@ -64,6 +64,13 @@ The app stores profile and progress in `localStorage` under `wikilinkua_state_v2
 ### Authentication
 
 - `wikilinkua/auth.py` supports dev login and real Wikimedia OAuth 2.0.
+- **The authorize request must send `scope`.** MediaWiki issues a token carrying only the
+  scopes actually requested, so omitting it yields a token with no API rights and every
+  Commons call fails with `readapidenied` ("You need read permission to use this module").
+  `OAUTH_SCOPES` defaults to `basic editpage uploadfile uploadeditmovefile`; it must be a
+  subset of the consumer's approved grants or authorization fails outright.
+- Changing the consumer or the scopes **invalidates existing sessions**. Users must log out
+  and log back in; an old session keeps its old, weaker token.
 - The dev flow does not contact Wikimedia and exists only for local/demo use.
 - The real flow stores the OAuth access token in the Flask session for Commons upload.
 

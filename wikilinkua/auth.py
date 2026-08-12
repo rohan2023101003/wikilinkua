@@ -69,6 +69,11 @@ def login_start():
         "redirect_uri": current_app.config["OAUTH_CALLBACK_URL"],
         "state": state,
     }
+    # Ask for the grants we need. Without this the issued token has no API
+    # rights and Commons rejects everything with "readapidenied".
+    scopes = (current_app.config.get("OAUTH_SCOPES") or "").strip()
+    if scopes:
+        params["scope"] = scopes
     return redirect(current_app.config["OAUTH_AUTHORIZE_URL"] + "?" + urlencode(params))
 
 

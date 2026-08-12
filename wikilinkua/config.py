@@ -34,6 +34,21 @@ class Config:
         "OAUTH_CALLBACK_URL", "http://localhost:5000/oauth-callback"
     )
 
+    # Scopes requested at authorization time. MediaWiki issues a token carrying
+    # only the scopes actually asked for, so omitting these yields a token with
+    # no API rights at all - every Commons call then fails with "readapidenied"
+    # ("You need read permission to use this module").
+    #
+    # These names are the authoritative MediaWiki grant ids and must be a subset
+    # of what the consumer was approved for, or authorization fails outright:
+    #   basic               Basic rights (API read - always needed)
+    #   editpage            Edit existing pages
+    #   uploadfile          Upload new files
+    #   uploadeditmovefile  Upload, replace, and move files
+    OAUTH_SCOPES = os.environ.get(
+        "OAUTH_SCOPES", "basic editpage uploadfile uploadeditmovefile"
+    )
+
     # MediaWiki OAuth 2.0 REST endpoints (on meta) - do not change.
     OAUTH_AUTHORIZE_URL = "https://meta.wikimedia.org/w/rest.php/oauth2/authorize"
     OAUTH_TOKEN_URL = "https://meta.wikimedia.org/w/rest.php/oauth2/access_token"

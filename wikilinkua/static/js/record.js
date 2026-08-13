@@ -54,11 +54,24 @@
     } catch (e) {}
   }
   if (prefillQid) {
+    var matched = false;
     for (var i = 0; i < $lang.options.length; i++) {
       if ($lang.options[i].value.split("|")[0] === prefillQid) {
         $lang.selectedIndex = i;
+        matched = true;
         break;
       }
+    }
+    // The dropdown only lists a handful of languages. Arriving from Contribute
+    // with any other language used to silently fall back to English and file the
+    // recording under the wrong language - add the real one instead.
+    if (!matched && window.WL_PREFILL && window.WL_PREFILL.code) {
+      var opt = document.createElement("option");
+      opt.value = prefillQid + "|" + window.WL_PREFILL.code;
+      opt.textContent = (window.WL_PREFILL.langName || window.WL_PREFILL.code)
+        + " (" + window.WL_PREFILL.code + ")";
+      $lang.insertBefore(opt, $lang.firstChild);
+      $lang.selectedIndex = 0;
     }
   }
 
@@ -173,6 +186,10 @@
     if (window.WL_PREFILL && window.WL_PREFILL.lexeme) {
       fd.append("lexeme", window.WL_PREFILL.lexeme);
     }
+    var $prof = document.getElementById("rec-proficiency");
+    var $region = document.getElementById("rec-region");
+    if ($prof) fd.append("proficiency", $prof.value);
+    if ($region) fd.append("region", ($region.value || "").trim());
 
     $submit.disabled = true;
     setStatus("Uploading…", "muted");
@@ -202,4 +219,37 @@
       $submit.disabled = false;
     }
   });
+
+  // Link an already-uploaded Commons file to the lexeme. Works with only the
+  // `editpage` grant, so it is usable while the upload grant is still pending.
+  var $linkBtn = document.getElementById("link-submit");
+  if ($linkBtn) {
+    var $linkFile = document.getElementById("link-filename");
+    var $linkStatus = document.getElementById("link-status");
+    $linkBtn.addEventListener("click", async function () {
+      var name = ($linkFile.value || "").trim();
+      if (!name) {
+        $linkStatus.style.color = "#d73333";
+        $linkStatus.textContent = "Paste the Commons file name first.";
+        return;
+      }
+      var fd = new FormData();
+      fd.append("lexeme", (window.WL_PREFILL && window.WL_PREFILL.lexeme) || "");
+      fd.append("word", ($word.value || "").trim());
+      fd.append("filename", name);
+      $linkBtn.disabled = true;
+      $linkStatus.style.color = "#54595d";
+      $linkStatus.textContent = "Linking\u2026";
+      try {
+        var res = await fetch("/api/link-audio", { method: "POST", body: fd });
+        var data = await res.json();
+        $linkStatus.style.color = data.ok ? "#14866d" : "#d73333";
+        $linkStatus.textContent = (data.ok ? "\u2714 " : "") + (data.message || "");
+      } catch (err) {
+        $linkStatus.style.color = "#d73333";
+        $linkStatus.textContent = "Network error: " + err.message;
+      }
+      $linkBtn.disabled = false;
+    });
+  }
 })();

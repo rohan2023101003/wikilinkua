@@ -160,14 +160,14 @@ LIMIT ${t}`}var kp=[{id:`no-sense`,priority:Cp.HIGH,title:`Lexemes with no sense
 }`),listQuery:(e,t=25)=>Op(`  ?lex dct:language wd:${e} ;
        wikibase:lemma ?lemma_ ;
        ontolex:sense/wdt:P5137 [] .
-  FILTER NOT EXISTS { ?lex wdt:P5191 [] }`,t)},{id:`no-audio`,priority:Cp.HIGH,title:`Words with no pronunciation audio (P443)`,unlocks:`Listening practice. Without audio a learner can read the word but never hear it.`,fix:`Record the word (Lingua Libre, or the recorder in this app) and link the file with P443 on the form.`,recordable:!0,getCount:e=>Tp(`SELECT (COUNT(DISTINCT ?lex) AS ?n) WHERE {
-  ?lex dct:language wd:${e} .
+  FILTER NOT EXISTS { ?lex wdt:P5191 [] }`,t)},{id:`no-audio`,priority:Cp.HIGH,title:`Learner-ready words with no pronunciation audio (P443)`,unlocks:`Listening practice. Without audio a learner can read the word but never hear it.`,fix:`Record the word (Lingua Libre, or the recorder in this app) and link the file with P443 on the form.`,recordable:!0,getCount:e=>Tp(`SELECT (COUNT(DISTINCT ?lex) AS ?n) WHERE {
+  ?lex dct:language wd:${e} ; ontolex:sense/wdt:P5137 [] .
   FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P443 [] }
 }`),listQuery:(e,t=25)=>Op(`  ?lex dct:language wd:${e} ;
        wikibase:lemma ?lemma_ ;
        ontolex:sense/wdt:P5137 [] .
-  FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P443 [] }`,t)},{id:`no-ipa`,priority:Cp.MEDIUM,title:`Words with no IPA transcription (P898)`,unlocks:`The "sounds similar" detection, and pronunciation hints for learners who cannot yet read the script.`,fix:`Add "IPA transcription" (P898) on the lexeme form.`,getCount:e=>Tp(`SELECT (COUNT(DISTINCT ?lex) AS ?n) WHERE {
-  ?lex dct:language wd:${e} .
+  FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P443 [] }`,t)},{id:`no-ipa`,priority:Cp.MEDIUM,title:`Learner-ready words with no IPA transcription (P898)`,unlocks:`The "sounds similar" detection, and pronunciation hints for learners who cannot yet read the script.`,fix:`Add "IPA transcription" (P898) on the lexeme form.`,getCount:e=>Tp(`SELECT (COUNT(DISTINCT ?lex) AS ?n) WHERE {
+  ?lex dct:language wd:${e} ; ontolex:sense/wdt:P5137 [] .
   FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P898 [] }
 }`),listQuery:(e,t=25)=>Op(`  ?lex dct:language wd:${e} ;
        wikibase:lemma ?lemma_ ;

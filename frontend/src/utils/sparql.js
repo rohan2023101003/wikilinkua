@@ -46,13 +46,6 @@ export function getLanguage(qid) {
   return LANG_BY_QID.get(qid) || LANG_BY_QID.get(resolveLangQid(qid)) || null;
 }
 
-export const PRESETS = [
-  { label: 'Punjabi → Hindi/Urdu', known: ['Q58635'], target: 'Q11051' },
-  { label: 'Arabic → Indonesian (loanwords)', known: ['Q13955'], target: 'Q9240' },
-  { label: 'English + Spanish → French', known: ['Q1860', 'Q1321'], target: 'Q150' },
-  { label: 'Persian + Punjabi → Malayalam', known: ['Q9168', 'Q58635'], target: 'Q36236' },
-  { label: 'English → Esperanto', known: ['Q1860'], target: 'Q143' }
-];
 
 // Wikidata stores no lexemes at all under Hindi (Q1568), Urdu (Q1617) or the
 // umbrella Norwegian (Q9043) - the actual lexical data lives under Hindustani
@@ -66,8 +59,6 @@ export const LANGUAGE_ALIASES = {
 export const resolveLangQid = (qid) => LANGUAGE_ALIASES[qid] || qid;
 
 const WL_MAX_BRIDGES = 15000;
-const FF_INNER_LIMIT = 1500;
-const FF_BRIDGE_LIMIT = 400;
 
 // Levenshtein helper
 function levenshteinDistance(a, b) {

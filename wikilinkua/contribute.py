@@ -112,6 +112,48 @@ def upload_check():
     return jsonify(info)
 
 
+@bp.route("/api/link-audio", methods=["POST"])
+def link_audio():
+    """Link an EXISTING Commons file to a lexeme form with P443.
+
+    Useful on its own: writing a statement is an edit to an existing entity, so it
+    needs only the `editpage` grant - unlike uploading a new file, which also needs
+    `createpage`. So recordings made elsewhere (Lingua Libre, or a file already on
+    Commons) can be connected to Wikidata even while the upload grant is pending.
+    """
+    token = session.get("oauth_token")
+    if not token:
+        return jsonify(ok=False, message="Linking needs a real Wikimedia login.")
+
+    lexeme_id = (request.form.get("lexeme") or "").strip().upper()
+    word = (request.form.get("word") or "").strip()
+    filename = (request.form.get("filename") or "").strip()
+    # Accept a bare name, a File: title, or a pasted Commons URL.
+    filename = filename.replace("_", " ")
+    for prefix in ("https://commons.wikimedia.org/wiki/",
+                   "http://commons.wikimedia.org/wiki/"):
+        if filename.startswith(prefix):
+            filename = filename[len(prefix):]
+    if filename.lower().startswith("file:"):
+        filename = filename.split(":", 1)[1].strip()
+
+    if not lexeme_id.startswith("L") or not word or not filename:
+        return jsonify(ok=False,
+                       message="Need a lexeme id, the word, and the Commons file name.")
+
+    try:
+        result = _link_audio_to_form(
+            token, lexeme_id, word, filename,
+            current_app.config["WIKIDATA_API_URL"],
+        )
+    except Exception as exc:  # noqa: BLE001
+        return jsonify(ok=False, message="Linking failed: " + str(exc))
+
+    return jsonify(ok=bool(result.get("linked")),
+                   message=result.get("note", ""),
+                   formId=result.get("formId", ""))
+
+
 @bp.route("/api/contribute-audio", methods=["POST"])
 def contribute_audio():
     """Receive a recorded clip and upload it to Commons (when permitted)."""
@@ -133,11 +175,16 @@ def contribute_audio():
 
     username = (session.get("user") or {}).get("username", "Unknown")
     lexeme_id = (request.form.get("lexeme") or "").strip()
+    # Who is speaking matters: a learner's recording presented as a native
+    # pronunciation is worse than no recording. Commons readers need to know.
+    proficiency = (request.form.get("proficiency") or "").strip()
+    region = (request.form.get("region") or "").strip()
     ext, mime = _audio_kind(audio.filename, audio.mimetype)
     try:
         result = _upload_to_commons(
             token, audio.read(), word, code, lang_name, username,
             current_app.config["COMMONS_API_URL"], ext, mime,
+            proficiency, region,
         )
     except Exception as exc:  # noqa: BLE001 - surface any failure to the UI
         return jsonify({"ok": False, "message": "Upload failed: " + str(exc)})
@@ -279,8 +326,16 @@ def _safe_title_part(text, fallback):
     return cleaned[:80] or fallback
 
 
+_PROFICIENCY_LABELS = {
+    "native": "native speaker",
+    "fluent": "fluent speaker",
+    "learner": "learner (not a native speaker)",
+}
+
+
 def _upload_to_commons(token, audio_bytes, word, code, lang_name, username,
-                       api_url, ext="webm", mime="audio/webm"):
+                       api_url, ext="webm", mime="audio/webm",
+                       proficiency="", region=""):
     """Upload one audio clip to Commons via the action API + OAuth bearer token."""
     import requests
 
@@ -332,17 +387,30 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username,
 
     date = datetime.date.today().isoformat()
     in_lang = (" in " + lang_name) if lang_name else ""
+
+    # Say who is speaking. Without this a learner's attempt is indistinguishable
+    # from a native pronunciation, which makes the file unusable for teaching.
+    speaker = _PROFICIENCY_LABELS.get(proficiency, "")
+    speaker_bits = [b for b in (speaker, region) if b]
+    speaker_note = (" Spoken by a " + ", ".join(speaker_bits) + ".") if speaker_bits else ""
+
+    # Files belong in the language-specific pronunciation category
+    # ("Category:French pronunciation"); the bare "Category:Pronunciation" is a
+    # top-level container that should not hold individual files.
+    category = (lang_name + " pronunciation") if lang_name else "Pronunciation"
+
     text = (
         "=={{int:filedesc}}==\n"
         "{{Information\n"
-        '|description={{en|1=Pronunciation of "' + word + '"' + in_lang + ".}}\n"
+        '|description={{en|1=Pronunciation of "' + word + '"' + in_lang + "."
+        + speaker_note + "}}\n"
         "|date=" + date + "\n"
         "|source={{own}}\n"
         "|author=[[User:" + username + "|" + username + "]]\n"
         "}}\n\n"
         "=={{int:license-header}}==\n"
         "{{self|cc-by-sa-4.0}}\n\n"
-        "[[Category:Pronunciation]]"
+        "[[Category:" + category + "]]"
     )
     if lang_name:
         text += "\n[[Category:" + lang_name + " pronunciation]]"

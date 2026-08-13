@@ -123,7 +123,14 @@ Tasks adapt to the language. Grammatical gender is only suggested where the lang
 already uses it; where a language barely uses gender, the app instead flags the existing
 gender statements as likely errors to review.
 
-Recording pronunciations lives at `/contribute/record`, reached from the "no audio" task or the link at the bottom of the Contribute page.
+Recording pronunciations lives at `/contribute/record`, reached from the "no audio" task,
+which passes the word's lexeme along. After a successful upload the recording is linked to
+the lexeme's matching form with P443, so the word actually gains audio, starts playing in
+the app, and drops off the gap list. You are asked whether you are a native speaker, because
+that is recorded on the file page and learners rely on it.
+
+If a recording already exists on Commons (from Lingua Libre, say), you can paste its file
+name to link it without uploading anything.
 
 ### Profile and Login
 

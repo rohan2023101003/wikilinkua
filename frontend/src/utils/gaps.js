@@ -116,12 +116,14 @@ export const GAP_TASKS = [
   {
     id: 'no-audio',
     priority: PRIORITY.HIGH,
-    title: 'Words with no pronunciation audio (P443)',
+    title: 'Learner-ready words with no pronunciation audio (P443)',
     unlocks: 'Listening practice. Without audio a learner can read the word but never hear it.',
     fix: 'Record the word (Lingua Libre, or the recorder in this app) and link the file with P443 on the form.',
     recordable: true,
+    // Scoped to words that already carry P5137 - the ones a learner can actually
+    // meet - so this count describes exactly the same set as the example list.
     getCount: (qid) => count(`SELECT (COUNT(DISTINCT ?lex) AS ?n) WHERE {
-  ?lex dct:language wd:${qid} .
+  ?lex dct:language wd:${qid} ; ontolex:sense/wdt:P5137 [] .
   FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P443 [] }
 }`),
     listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;
@@ -132,11 +134,11 @@ export const GAP_TASKS = [
   {
     id: 'no-ipa',
     priority: PRIORITY.MEDIUM,
-    title: 'Words with no IPA transcription (P898)',
+    title: 'Learner-ready words with no IPA transcription (P898)',
     unlocks: 'The "sounds similar" detection, and pronunciation hints for learners who cannot yet read the script.',
     fix: 'Add "IPA transcription" (P898) on the lexeme form.',
     getCount: (qid) => count(`SELECT (COUNT(DISTINCT ?lex) AS ?n) WHERE {
-  ?lex dct:language wd:${qid} .
+  ?lex dct:language wd:${qid} ; ontolex:sense/wdt:P5137 [] .
   FILTER NOT EXISTS { ?lex ontolex:lexicalForm/wdt:P898 [] }
 }`),
     listQuery: (qid, limit = 25) => oneRowPerLexeme(`  ?lex dct:language wd:${qid} ;

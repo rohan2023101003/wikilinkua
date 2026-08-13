@@ -166,14 +166,32 @@ that already carry P5185: mostly gendered → "add the missing ones"; barely gen
 
 ## B. Record a pronunciation
 
-Record a word in the browser at `/contribute/record`, listen back, and publish it to **Wikimedia
-Commons** under CC BY-SA 4.0 using your own Wikimedia login, so it counts as your
-contribution. Reachable directly from the "no audio" task.
+Record a word at `/contribute/record`, listen back, and publish it to **Wikimedia Commons**
+under CC BY-SA 4.0 with your own Wikimedia login. Reached from the "no audio" task, which
+passes the lexeme id along.
 
-*Lands on:* Wikimedia Commons, via the Action API `action=upload` with your OAuth token.
-**Note:** the upload is not yet linked back to the lexeme with **P443** — that step is
-still manual. [Lingua Libre](https://lingualibre.org) remains the better tool for bulk
-recording sessions.
+**The upload is then linked back automatically.** After a successful upload the app writes
+a **P443** statement on the lexeme's matching *Form* — audio belongs on a form, not the
+lexeme, because `italien` and `italiens` are pronounced differently. It only links when the
+recorded word matches exactly one form; if it is ambiguous it says so instead of guessing.
+That closes the loop: the word gains audio, plays in the app, and leaves the gap list.
+
+You are asked whether you are a **native speaker** and (optionally) your region. That goes
+on the file page — a learner's attempt presented as a native pronunciation is worse than no
+recording.
+
+*Lands on:* Wikimedia Commons (`action=upload`), then Wikidata (`wbcreateclaim`, P443).
+
+**Grants:** uploading a new file needs `uploadfile` **and `createeditmovepage`** — creating
+the file's description page requires `createpage`, which no upload grant includes. The
+linking step only needs `editpage`.
+
+**Already have a file on Commons?** The recorder can link an existing file (e.g. from
+[Lingua Libre](https://lingualibre.org)) to the lexeme without uploading anything — paste
+its name. This works with edit permission alone.
+
+*Browser note:* Safari records `audio/mp4`, which Commons rejects. The recorder requests
+ogg/opus or webm/opus and tells you to switch browsers if neither is available.
 
 ## C. Create a missing Wikipedia article
 
@@ -310,7 +328,9 @@ See [`PROJECT_SETUP.md`](PROJECT_SETUP.md) for the full runbook and
   curriculum.
 - **P5972/P5973/P5974 are not fetched.** Every query shape tried took 43–110s or failed on
   WDQS. `same_meaning` already carries the meaning claim.
-- **Uploads do not link P443** back to the lexeme yet.
+- **Uploading new files needs the `createeditmovepage` grant** (for `createpage`), which is
+  separate from the upload grants. Until that is approved, use the "link an existing Commons
+  file" path, which needs only `editpage`.
 - **Login is currently required** on the live deployment, though the app is designed to
   work anonymously from `localStorage`.
 - **Not yet built:** cross-device sync/database, script learning, parallel-article reading

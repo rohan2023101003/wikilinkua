@@ -205,6 +205,27 @@ npx vite build --ssr src/__smoke.jsx --outDir ./.smoke && node .smoke/run.mjs
 It only covers initial render — no effects, no interaction — so it catches blank screens, not
 logic bugs.
 
+### Pronunciation upload and P443 linking
+
+An upload that is not linked is worthless: the file sits on Commons, the lexeme still has no
+audio, and the word never leaves the "no audio" list. So `contribute.py` does both steps.
+
+- **Audio attaches to a Form, not a Lexeme.** `italien` (F1) and `italiens` (F2) are
+  pronounced differently and carry separate P443 statements. `_link_audio_to_form()` matches
+  the recorded word against form representations and writes the claim **only on an exact,
+  unambiguous match** - guessing would create wrong data.
+- **Two different grants.** Uploading a new file needs `uploadfile` **plus**
+  `createeditmovepage`, because creating the File: description page requires `createpage`,
+  which no upload grant confers. Writing P443 is an edit to an existing entity, so it needs
+  only `editpage`. `/api/link-audio` exists precisely because the second is usable without
+  the first.
+- **Format matters.** Commons accepts ogg/opus/webm/wav/mp3/flac but **not m4a**, which is
+  what Safari's MediaRecorder produces by default. `record.js` requests a supported container
+  and refuses rather than uploading something Commons will reject.
+- **Categories** use `Category:<Language> pronunciation` (which exists on Commons); the bare
+  `Category:Pronunciation` is a top-level container and should not hold files.
+- P443 statements conventionally carry **no qualifiers** - do not invent any.
+
 ### Contribution gap finder
 
 `frontend/src/utils/gaps.js` holds the maintenance-task catalogue behind the Contribute
@@ -215,6 +236,11 @@ Rules when adding tasks:
   seconds rather than timing out.
 - Prefer two plain counts over one `COUNT` with `FILTER NOT EXISTS` when the negation is
   slow - "lexemes with no sense" went from ~55s to ~3s that way.
+- A task's **count query and list query must describe the same population**, or the number
+  on screen does not describe the words underneath it. The audio/IPA counts are scoped to
+  learner-ready lexemes for exactly this reason.
+- Wrap list queries in `oneRowPerLexeme()`. Any pattern touching senses or forms multiplies
+  rows - French "fond" has six senses and appeared six times.
 - Use `available(profile)` for language-dependent tasks. Suggesting grammatical gender for
   a language that has none would be actively wrong, so the gender tasks switch on the
   measured share of nouns that already carry P5185.

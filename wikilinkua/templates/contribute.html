@@ -128,6 +128,26 @@
       </div>
 
       <div class="wl-field">
+        <label class="wl-label" for="rec-proficiency">How well do you speak this language?</label>
+        <select id="rec-proficiency" class="wl-select">
+          <option value="native">Native speaker</option>
+          <option value="fluent">Fluent, not native</option>
+          <option value="learner">Still learning</option>
+        </select>
+        <p style="font-size:0.78rem;color:#72777d;margin-top:6px;line-height:1.5">
+          This is recorded on the file page. Learners rely on knowing whether a
+          pronunciation is native, so please answer honestly - and prefer recording
+          languages you actually speak.
+        </p>
+      </div>
+
+      <div class="wl-field">
+        <label class="wl-label" for="rec-region">Region or accent <span style="font-weight:400;color:#72777d">(optional)</span></label>
+        <input id="rec-region" class="wl-input" type="text"
+               placeholder="e.g. Kerala, India">
+      </div>
+
+      <div class="wl-field">
         <div class="wl-rec-row">
           <button id="rec-start" class="wl-btn wl-btn--record">Record</button>
           <button id="rec-stop" class="wl-btn wl-btn--stop" disabled>Stop</button>
@@ -146,6 +166,30 @@
       <p id="rec-status"></p>
     </div>
 
+    {% if lexeme_id %}
+    <div class="wl-card" style="margin-top:20px">
+      <h2 style="font-size:1.05rem;font-weight:700;margin:0 0 6px">
+        Already recorded it somewhere else?
+      </h2>
+      <p style="font-size:0.85rem;color:#54595d;line-height:1.6;margin:0 0 14px">
+        If the recording is already on Wikimedia Commons - from
+        <a href="https://lingualibre.org" target="_blank" rel="noopener">Lingua Libre</a>
+        or an earlier upload - paste its file name here and it will be linked to
+        <strong>{{ lexeme_id }}</strong> with P443. Linking only needs edit permission, so
+        this works even when uploading new files does not.
+      </p>
+      <div class="wl-field">
+        <label class="wl-label" for="link-filename">Commons file name or URL</label>
+        <input id="link-filename" class="wl-input" type="text"
+               placeholder="LL-Q150 (fra)-User-word.wav">
+      </div>
+      <button id="link-submit" class="wl-btn--primary" style="margin-top:4px">
+        Link this file to {{ lexeme_id }}
+      </button>
+      <p id="link-status" style="margin-top:12px;font-size:0.9rem;color:#54595d;min-height:1.2em"></p>
+    </div>
+    {% endif %}
+
     <p class="wl-note">
       By submitting you agree to publish under
       <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank"
@@ -159,7 +203,7 @@
 <script>
   window.WL_PREFILL = {
     qid: "{{ lang_qid }}", code: "{{ lang_code }}", word: "{{ word }}",
-    lexeme: "{{ lexeme_id }}"
+    langName: "{{ lang_name }}", lexeme: "{{ lexeme_id }}"
   };
 </script>
 <script src="/static/js/record.js"></script>

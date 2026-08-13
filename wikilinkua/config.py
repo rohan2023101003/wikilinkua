@@ -59,6 +59,12 @@ class Config:
         "https://meta.wikimedia.org/wiki/Special:CreateAccount"
     )
 
+    # Wikidata API - where the P443 statement linking the recording to the
+    # lexeme form is written after a successful Commons upload.
+    WIKIDATA_API_URL = os.environ.get(
+        "WIKIDATA_API_URL", "https://www.wikidata.org/w/api.php"
+    )
+
     # Wikimedia Commons API - target for in-app pronunciation uploads.
     COMMONS_API_URL = os.environ.get(
         "COMMONS_API_URL", "https://commons.wikimedia.org/w/api.php"

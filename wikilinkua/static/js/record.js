@@ -170,6 +170,9 @@
     fd.append("qid", parts[0]);
     fd.append("code", parts[1]);
     fd.append("lang", $lang.options[$lang.selectedIndex].textContent.replace(/\s*\(.*\)$/, ""));
+    if (window.WL_PREFILL && window.WL_PREFILL.lexeme) {
+      fd.append("lexeme", window.WL_PREFILL.lexeme);
+    }
 
     $submit.disabled = true;
     setStatus("Uploading…", "muted");

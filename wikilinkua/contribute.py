@@ -23,7 +23,9 @@ def contribute_page():
 
     Lives under /contribute/record so that /contribute itself belongs to the
     in-app Contribute section (the data-gap dashboard).
-    Can be pre-filled via ?word=&code=&lang=&qid= .
+    Can be pre-filled via ?word=&code=&lang=&qid=&lexeme= . When `lexeme` is
+    present the upload is linked to that lexeme's matching form with P443, which
+    is what turns the recording into usable pronunciation data.
     """
     return render_template(
         "contribute.html",
@@ -31,6 +33,7 @@ def contribute_page():
         lang_code=request.args.get("code", ""),
         lang_name=request.args.get("lang", ""),
         lang_qid=request.args.get("qid", ""),
+        lexeme_id=request.args.get("lexeme", ""),
     )
 
 
@@ -87,11 +90,24 @@ def upload_check():
     userinfo = resp.get("query", {}).get("userinfo", {})
     rights = set(userinfo.get("rights") or [])
     info["commonsUser"] = userinfo.get("name")
-    info["canUpload"] = "upload" in rights
-    if not info["canUpload"]:
+    info["hasUploadRight"] = "upload" in rights
+    # Publishing a NEW file also creates its File: description page, so `createpage`
+    # is required on top of `upload`. No upload grant includes it - only the
+    # "Create, edit, and move pages" (createeditmovepage) grant does.
+    info["hasCreateRight"] = "createpage" in rights
+    info["canUpload"] = info["hasUploadRight"] and info["hasCreateRight"]
+
+    if not info["hasUploadRight"]:
         info["reason"] = (
             "Your Wikimedia session is valid but carries no upload right. Log out and log "
-            "in again so the new permissions are applied."
+            "in again so the current permissions are applied."
+        )
+    elif not info["hasCreateRight"]:
+        info["reason"] = (
+            "You can upload, but not create the file's description page, so Commons will "
+            "refuse a new file. The OAuth consumer needs the 'Create, edit, and move "
+            "pages' grant (createeditmovepage) as well as the upload grants - upload "
+            "grants alone do not include it. That needs a consumer update on Meta."
         )
     return jsonify(info)
 
@@ -116,6 +132,7 @@ def contribute_audio():
         return jsonify(ok=False, message="Please record a clip and enter the word.")
 
     username = (session.get("user") or {}).get("username", "Unknown")
+    lexeme_id = (request.form.get("lexeme") or "").strip()
     ext, mime = _audio_kind(audio.filename, audio.mimetype)
     try:
         result = _upload_to_commons(
@@ -123,8 +140,108 @@ def contribute_audio():
             current_app.config["COMMONS_API_URL"], ext, mime,
         )
     except Exception as exc:  # noqa: BLE001 - surface any failure to the UI
-        result = {"ok": False, "message": "Upload failed: " + str(exc)}
+        return jsonify({"ok": False, "message": "Upload failed: " + str(exc)})
+
+    # A file on Commons that nothing points at helps nobody: link it to the
+    # lexeme form so the word actually gains audio and leaves the gap list.
+    if result.get("ok") and lexeme_id.upper().startswith("L"):
+        try:
+            link = _link_audio_to_form(
+                token, lexeme_id.upper(), word, result.get("filename", ""),
+                current_app.config["WIKIDATA_API_URL"],
+            )
+        except Exception as exc:  # noqa: BLE001
+            link = {"linked": False, "note": "Uploaded, but linking to the lexeme "
+                                             "failed: " + str(exc)}
+        result.update(link)
+        result["message"] = result["message"] + " " + link.get("note", "")
+    elif result.get("ok"):
+        result["linked"] = False
+        result["note"] = ("Uploaded to Commons. It is not attached to any Wikidata "
+                          "lexeme, so add P443 by hand for it to count as pronunciation "
+                          "data.")
+        result["message"] = result["message"] + " " + result["note"]
+
     return jsonify(result)
+
+
+def _link_audio_to_form(token, lexeme_id, word, filename, wikidata_api):
+    """Point the lexeme's matching Form at the uploaded file with P443.
+
+    Without this the upload is a dead end: a file sits on Commons, the Wikidata
+    lexeme still has no audio, the word keeps appearing in the "no audio" gap
+    list, and WikiLinkua still cannot play it.
+
+    Audio belongs on a **Form**, not on the Lexeme - "italien" and "italiens" are
+    pronounced differently and each carries its own P443. So we only link when the
+    recorded word unambiguously matches exactly one form; otherwise we say so and
+    let a human choose, rather than guessing and writing a wrong statement.
+
+    Writing this is an edit to an existing entity, so it needs `editpage` - not
+    the `createpage` grant the Commons upload needs.
+    """
+    import json as _json
+    import requests
+
+    sess = requests.Session()
+    sess.headers.update({
+        "Authorization": "Bearer " + token,
+        "User-Agent": "WikiLinkua/1.0 (https://wikilinkua.toolforge.org)",
+    })
+
+    entity = sess.get(wikidata_api, params={
+        "action": "wbgetentities", "ids": lexeme_id, "format": "json",
+    }, timeout=20).json()
+    lex = (entity.get("entities") or {}).get(lexeme_id)
+    if not lex:
+        return {"linked": False, "note": "Could not read " + lexeme_id + " from Wikidata."}
+
+    target = (word or "").strip().casefold()
+    matches = []
+    for form in lex.get("forms", []):
+        reps = [r.get("value", "") for r in (form.get("representations") or {}).values()]
+        if any(r.strip().casefold() == target for r in reps):
+            matches.append((form, reps))
+
+    if len(matches) != 1:
+        why = ("no form of this lexeme is spelled that way"
+               if not matches else "several forms are spelled that way")
+        return {"linked": False, "note":
+                "Uploaded, but not linked automatically because " + why +
+                ". Add P443 to the right form by hand."}
+
+    form, reps = matches[0]
+    if "P443" in (form.get("claims") or {}):
+        return {"linked": False, "formId": form["id"],
+                "note": "Uploaded. " + form["id"] + " already has audio, so no statement "
+                        "was added - a second recording can still be added by hand."}
+
+    csrf = sess.get(wikidata_api, params={
+        "action": "query", "meta": "tokens", "type": "csrf", "format": "json",
+    }, timeout=20).json().get("query", {}).get("tokens", {}).get("csrftoken", "")
+    if not csrf or csrf == "+\\":
+        return {"linked": False, "formId": form["id"],
+                "note": "Uploaded to Commons, but the Wikidata edit was refused "
+                        "(no edit permission). Add P443 to " + form["id"] + " by hand."}
+
+    res = sess.post(wikidata_api, data={
+        "action": "wbcreateclaim",
+        "entity": form["id"],
+        "property": "P443",
+        "snaktype": "value",
+        "value": _json.dumps(filename),   # commonsMedia takes the bare file name
+        "token": csrf,
+        "summary": "add pronunciation recorded via WikiLinkua",
+        "format": "json",
+    }, timeout=30).json()
+
+    if res.get("success") == 1:
+        return {"linked": True, "formId": form["id"],
+                "note": "Linked to " + form["id"] + " with P443."}
+    err = res.get("error", {})
+    return {"linked": False, "formId": form["id"],
+            "note": "Uploaded to Commons, but adding P443 to " + form["id"] +
+                    " failed: " + (err.get("info") or err.get("code") or "unknown error")}
 
 
 # What the browser can hand us -> (Commons file extension, MIME type sent along).
@@ -274,13 +391,35 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username,
             "ok": True,
             "message": "Uploaded to Wikimedia Commons!",
             "url": up.get("imageinfo", {}).get("descriptionurl", ""),
+            "filename": up.get("filename") or filename,
         }
 
     err = resp.get("error", {})
-    if err.get("code") in ("permissiondenied", "mustbeloggedin", "notloggedin"):
+    code_ = err.get("code", "")
+    info_ = err.get("info", "")
+
+    # Publishing a NEW file also creates its File: description page. That needs the
+    # `createpage` right, which NO upload grant confers - only the "Create, edit,
+    # and move pages" (createeditmovepage) grant does. No amount of retrying or
+    # re-logging-in fixes it; the consumer itself has to be updated.
+    if code_ in ("nocreate-loggedin", "cantcreate", "protectedpage") \
+            or "permission to create" in info_.lower():
+        return {
+            "ok": False,
+            "message": (
+                "Commons accepted the audio but refused to create the file's description "
+                "page. Publishing a new file needs the 'Create, edit, and move pages' "
+                "(createeditmovepage) OAuth grant in addition to the upload grants - the "
+                "upload grants alone do not allow creating pages. The OAuth consumer has "
+                "to be updated on Meta and re-approved; this cannot be worked around in "
+                "the app. (API said: " + (code_ or info_) + ")"
+            ),
+        }
+
+    if code_ in ("permissiondenied", "mustbeloggedin", "notloggedin"):
         return {
             "ok": False,
             "message": ("Commons refused the upload: your login doesn't carry the "
                         "upload grant. Log out and log in again to refresh it."),
         }
-    return {"ok": False, "message": err.get("info", "Upload did not succeed.")}
+    return {"ok": False, "message": info_ or "Upload did not succeed."}

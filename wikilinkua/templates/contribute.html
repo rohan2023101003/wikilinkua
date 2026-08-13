@@ -98,7 +98,7 @@
           <option value="Q188|de">German (de)</option>
           <option value="Q652|it">Italian (it)</option>
           <option value="Q5146|pt">Portuguese (pt)</option>
-          <option value="Q1568|hi">Hindi (hi)</option>
+          <option value="Q11051|hi">Hindi / Urdu - Hindustani (hi)</option>
           <option value="Q58635|pa">Punjabi (pa)</option>
           <option value="Q36236|ml">Malayalam (ml)</option>
           <option value="Q5885|ta">Tamil (ta)</option>
@@ -109,6 +109,17 @@
           <option value="Q143|eo">Esperanto (eo)</option>
         </select>
       </div>
+
+      {% if lexeme_id %}
+      <p style="margin:0 0 16px;padding:10px 12px;border-radius:2px;background:#eaf3ff;
+                border:1px solid #b8d4f9;font-size:0.85rem;line-height:1.5;color:#202122">
+        Recording for
+        <a href="https://www.wikidata.org/wiki/Lexeme:{{ lexeme_id }}" target="_blank"
+           rel="noopener"><strong>{{ lexeme_id }}</strong></a>.
+        After upload the file is linked to the matching form with P443, so the word gains
+        real pronunciation data and drops off the "no audio" list.
+      </p>
+      {% endif %}
 
       <div class="wl-field">
         <label class="wl-label" for="rec-word">Word</label>
@@ -147,7 +158,8 @@
 {% block scripts %}
 <script>
   window.WL_PREFILL = {
-    qid: "{{ lang_qid }}", code: "{{ lang_code }}", word: "{{ word }}"
+    qid: "{{ lang_qid }}", code: "{{ lang_code }}", word: "{{ word }}",
+    lexeme: "{{ lexeme_id }}"
   };
 </script>
 <script src="/static/js/record.js"></script>

@@ -11,7 +11,8 @@ const BTN_GHOST = { padding: '8px 16px', borderRadius: '2px', background: '#fff'
 
 const fmt = (n) => (n === null || n === undefined ? '—' : n.toLocaleString());
 
-function TaskRow({ task, qid, langName }) {
+function TaskRow({ task, qid, lang }) {
+  const langName = lang.name;
   const [state, setState] = useState({ status: 'idle', count: null, error: null });
   const [examples, setExamples] = useState(null);
   const [open, setOpen] = useState(false);
@@ -107,21 +108,34 @@ function TaskRow({ task, qid, langName }) {
           {!loadingExamples && examples && examples.length > 0 && (
             <>
               <p style={{ fontSize: '12px', color: '#72777d', margin: '0 0 8px' }}>
-                Each link opens the lexeme on Wikidata, where you can make the edit.
+                {task.recordable
+                  ? 'Each link opens the recorder for that word. Once uploaded, the file is linked to the lexeme with P443, so the word gains real audio and leaves this list.'
+                  : 'Each link opens the lexeme on Wikidata, where you can make the edit.'}
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {examples.map(ex => (
-                  <a
-                    key={ex.lexemeId}
-                    href={lexemeUrl(ex.lexemeId)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={ex.lexemeId + ' · ' + langName}
-                    style={{ fontSize: '13px', padding: '4px 10px', border: '1px solid #c8ccd1', borderRadius: '2px', color: '#3366cc', textDecoration: 'none', background: '#f8f9fa' }}
-                  >
-                    {ex.lemma || ex.lexemeId}
-                  </a>
-                ))}
+                {examples.map(ex => {
+                  const recordHref = '/contribute/record?' + new URLSearchParams({
+                    word: ex.lemma || '',
+                    code: lang.code || '',
+                    lang: lang.name || '',
+                    qid: lang.qid || '',
+                    lexeme: ex.lexemeId,
+                  }).toString();
+                  return (
+                    <a
+                      key={ex.lexemeId}
+                      href={task.recordable ? recordHref : lexemeUrl(ex.lexemeId)}
+                      target={task.recordable ? undefined : '_blank'}
+                      rel={task.recordable ? undefined : 'noopener noreferrer'}
+                      title={task.recordable
+                        ? 'Record ' + (ex.lemma || ex.lexemeId) + ' - the upload is linked to ' + ex.lexemeId + ' automatically'
+                        : ex.lexemeId + ' · ' + langName}
+                      style={{ fontSize: '13px', padding: '4px 10px', border: '1px solid #c8ccd1', borderRadius: '2px', color: '#3366cc', textDecoration: 'none', background: '#f8f9fa' }}
+                    >
+                      {ex.lemma || ex.lexemeId}
+                    </a>
+                  );
+                })}
               </div>
             </>
           )}
@@ -244,7 +258,7 @@ export default function ContributeMode({ profile, onNavigate }) {
           </div>
 
           {tasks.map(task => (
-            <TaskRow key={task.id} task={task} qid={qid} langName={lang.name} />
+            <TaskRow key={task.id} task={task} qid={qid} lang={lang} />
           ))}
 
           <div style={{ ...CARD, marginTop: '20px', background: '#f8f9fa' }}>

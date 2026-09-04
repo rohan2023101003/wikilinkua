@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FlashcardExercise } from './Flashcards';
-import { getLang, fetchVideosInLanguage, fetchVideoThumbnails, checkSubtitleTracks, fetchSubtitleRaw, srtToVttBlob, extractLemmas } from '../utils/video';
+import { matchWordsInText } from '../utils/course';
+import { getLang, fetchVideosInLanguage, fetchVideoThumbnails, checkSubtitleTracks, fetchSubtitleRaw, srtToVttBlob, extractLemmas, parseSrt } from '../utils/video';
 
 const PAGE_SIZE = 24;
 // Fallback subtitle language when the learner's own languages have no track.
@@ -27,7 +28,7 @@ function applyFilter(meta, filter) {
   return meta;
 }
 
-export default function VideoMode({ profile, words, onAnswerWord, onNavigate }) {
+export default function VideoMode({ profile, words, formIndex, onAnswerWord, onNavigate }) {
   const [phase, setPhase] = useState('idle');
   const [loadingMsg, setLoadingMsg] = useState('');
   // videoMeta: full list with subtitle flags, no thumbnails
@@ -168,14 +169,15 @@ export default function VideoMode({ profile, words, onAnswerWord, onNavigate }) 
       let matched;
       if (selected.hasTargetSubs) {
         const srt = await fetchSubtitleRaw(selected.title, targetLang.code);
-        const lemmas = extractLemmas(srt);
-        const wordMap = new Map(words.map(w => [w.lemma.toLowerCase(), w]));
-        matched = lemmas.map(l => wordMap.get(l)).filter(w => w?.gloss);
+        // Subtitles are running text: match every recorded FORM, not just lemmas.
+        matched = matchWordsInText(parseSrt(srt).join(' '), words, formIndex, 20);
       } else {
         const srt = await fetchSubtitleRaw(selected.title, selected.knownSubLang.code);
+        // Subtitles are in a language the learner knows: match on the known-side
+        // word, which is the only side present in this text.
         const lemmas = extractLemmas(srt);
         const knownMap = new Map(
-          words.filter(w => (w.cognate || w.phoneticMatch) && w.knownLemma)
+          words.filter(w => w.knownLemma)
                .map(w => [w.knownLemma.toLowerCase(), w])
         );
         matched = lemmas.map(l => knownMap.get(l)).filter(w => w?.gloss);

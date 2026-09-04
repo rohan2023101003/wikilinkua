@@ -184,6 +184,64 @@ export function listDecks() {
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+// ------------------------------------------------------------------- streaks
+
+const dayKey = (ts = Date.now()) => new Date(ts).toISOString().slice(0, 10);
+
+/**
+ * Daily activity for a language pair: how many words were answered today, and
+ * how many days in a row the learner has shown up.
+ *
+ * Deliberately per-pair, like everything else - practising French should not
+ * silently keep a Malayalam streak alive.
+ */
+export function getActivity(profile) {
+  const deck = getDeck(profile);
+  const a = deck.activity || {};
+  const today = dayKey();
+  const answeredToday = a.day === today ? (a.count || 0) : 0;
+
+  // The streak survives today and yesterday; any longer gap resets it.
+  let streak = a.streak || 0;
+  if (a.day && a.day !== today) {
+    const yesterday = dayKey(Date.now() - 86400000);
+    if (a.day !== yesterday) streak = 0;
+  }
+  return { answeredToday, streak, goal: a.goal || 10, lastDay: a.day || null };
+}
+
+/** Record one answered word; rolls the streak over at the day boundary. */
+export function recordActivity(profile) {
+  const key = profileKey(profile);
+  if (!key) return getActivity(profile);
+
+  const state = loadState();
+  if (!state.decks[key]) state.decks[key] = emptyDeck(profile);
+  const deck = state.decks[key];
+  const a = deck.activity || {};
+  const today = dayKey();
+
+  if (a.day === today) {
+    a.count = (a.count || 0) + 1;
+  } else {
+    const yesterday = dayKey(Date.now() - 86400000);
+    a.streak = a.day === yesterday ? (a.streak || 0) + 1 : 1;
+    a.day = today;
+    a.count = 1;
+  }
+  deck.activity = a;
+  deck.updatedAt = Date.now();
+  writeRaw(state);
+  return getActivity(profile);
+}
+
+/** Change the daily goal (words per day). */
+export function setDailyGoal(profile, goal) {
+  updateDeck(profile, deck => {
+    deck.activity = { ...(deck.activity || {}), goal: Math.max(1, goal | 0) };
+  });
+}
+
 /** How many words are already tracked for a pair (used by the profile screen). */
 export function deckWordCount(profile) {
   return Object.keys(getDeck(profile).words || {}).length;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { langText } from '../utils/text';
 
 export function MatchPairsExercise({ words, onComplete }) {
   const [leftItems, setLeftItems] = useState([]);
@@ -139,7 +140,7 @@ export function MatchPairsExercise({ words, onComplete }) {
                   style={btnStyle}
                   className="quiz-option-button"
                 >
-                  {item.lemma}
+                  <span {...langText}>{item.lemma}</span>
                 </div>
               );
             })}
@@ -188,7 +189,7 @@ export function MatchPairsExercise({ words, onComplete }) {
                   style={btnStyle}
                   className="quiz-option-button"
                 >
-                  {item.gloss}
+                  <span {...langText}>{item.gloss}</span>
                 </div>
               );
             })}

@@ -141,3 +141,29 @@ body {
     width: 100%;
   }
 }
+
+
+/* Language text.
+   Target-language words and sentences can be right-to-left (Arabic, Hebrew,
+   Urdu, Persian) while the interface is left-to-right. `dir="auto"` on the
+   element picks the direction from the text itself; isolation stops that run
+   from reordering the interface text around it. */
+.wl-text {
+  unicode-bidi: isolate;
+}
+
+/* Nav must survive a phone: nine destinations will not fit on one line. */
+.wl-nav-scroll {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.wl-nav-scroll::-webkit-scrollbar { height: 3px; }
+
+@media (max-width: 900px) {
+  .wl-nav-inner { gap: 12px !important; padding: 10px 12px !important; }
+  .wl-nav-scroll { justify-content: flex-start; }
+}

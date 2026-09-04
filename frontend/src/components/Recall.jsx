@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SoundIcon, CodexIcon, cdxIconCheck } from './Badges';
 import { playAudio } from '../utils/audio';
+import { langText } from '../utils/text';
 
 export function RecallExercise({ word, words, onAnswer }) {
   const [choices, setChoices] = useState([]);
@@ -70,7 +71,7 @@ export function RecallExercise({ word, words, onAnswer }) {
         
         {/* Word Card Panel */}
         <div style={{ border: '1px solid #c8ccd1', borderRadius: '2px', padding: '32px 24px', textAlign: 'center', margin: '12px 0 24px 0', position: 'relative', background: '#f8f9fa' }}>
-          <div style={{ fontSize: '36px', fontWeight: '800', letterSpacing: '-0.02em', color: '#202122' }}>{word.lemma}</div>
+          <div style={{ fontSize: '36px', fontWeight: '800', letterSpacing: '-0.02em', color: '#202122' }} {...langText}>{word.lemma}</div>
           {word.targetIpa && <div style={{ fontSize: '14px', color: '#54595d', marginTop: '6px', fontFamily: 'monospace' }}>/{word.targetIpa}/</div>}
           
           {word.audioUrl && (

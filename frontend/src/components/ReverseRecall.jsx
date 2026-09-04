@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { playAudio } from '../utils/audio';
 import { CodexIcon, cdxIconCheck } from './Badges';
+import { langText } from '../utils/text';
 
 export function ReverseRecallExercise({ word, words, onAnswer }) {
   const [choices, setChoices] = useState([]);
@@ -108,7 +109,7 @@ export function ReverseRecallExercise({ word, words, onAnswer }) {
                 style={itemStyle}
                 className="quiz-option-button"
               >
-                <div>{choice.lemma}</div>
+                <div><span {...langText}>{choice.lemma}</span></div>
                 {choice.targetIpa && (
                   <div style={{ fontSize: '13px', fontWeight: '500', color: reveal && isCorrect ? '#3366cc' : '#72777d', marginTop: '4px', fontFamily: 'monospace' }}>
                     /{choice.targetIpa}/

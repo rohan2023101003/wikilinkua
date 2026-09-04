@@ -6,6 +6,7 @@ import {
   speakPhrase, ttsSupported, gradePhrase, getDuePhrases, machineTranslate,
 } from '../utils/phrases';
 import { CodexIcon, cdxIconVolumeUp, cdxIconVolumeOff } from './Badges';
+import { langText } from '../utils/text';
 
 export default function PhrasesMode({ words, progress, profile, onNavigate }) {
   const [phrases, setPhrases] = useState([]);
@@ -210,7 +211,7 @@ export default function PhrasesMode({ words, progress, profile, onNavigate }) {
             {targetLang.name}
           </div>
 
-          <p style={{ fontSize: '1.8rem', fontWeight: '500', lineHeight: 1.5, textAlign: 'center', margin: '0 0 24px', color: '#202122' }}>
+          <p style={{ fontSize: '1.8rem', fontWeight: '500', lineHeight: 1.5, textAlign: 'center', margin: '0 0 24px', color: '#202122' }} {...langText}>
             {segs.map((s, i) => s.hit
               ? <mark key={i} style={{ background: '#fef6b8', color: '#202122', borderRadius: '2px', padding: '2px 4px' }}>{s.text}</mark>
               : <span key={i}>{s.text}</span>)}

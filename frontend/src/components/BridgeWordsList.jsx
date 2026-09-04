@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { getLanguage } from '../utils/sparql';
 import { playAudio } from '../utils/audio';
 import { RelationBadge, SoundIcon } from './Badges';
+import { LexemeLink, DerivedFromEditor } from './WikidataLink';
 import {
   REL, relationMeta, relationTypes, primaryRelation, explainRelation,
 } from '../utils/relations';
+import { langText } from '../utils/text';
 
-export default function BridgeWordsList({ words, totalTargetMapped, coverage, profile, initialFilter = 'All', onNavigate }) {
+export default function BridgeWordsList({ words, totalTargetMapped, coverage, profile, account, initialFilter = 'All', onNavigate }) {
+  const canEdit = !!(account && account.canUpload);
   const [playingId, setPlayingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(initialFilter); // 'All' | 'Bridge' | 'Cognate' | 'Phonetic' | 'False friend'
@@ -208,7 +211,7 @@ export default function BridgeWordsList({ words, totalTargetMapped, coverage, pr
           P5191; the rest are meaning-only or surface resemblance. */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px', fontSize: '13px', color: '#54595d' }}>
         <span style={{ fontWeight: '600' }}>Evidence:</span>
-        {[REL.COGNATE, REL.BORROWED_FROM, REL.SAME_MEANING, REL.LOOKS_ALIKE].map(type => (
+        {[REL.COGNATE, REL.BORROWED_FROM, REL.SAME_MEANING].map(type => (
           <span key={type} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <RelationBadge type={type} />
             <strong style={{ color: '#202122' }}>{counts[type] || 0}</strong>
@@ -274,7 +277,7 @@ export default function BridgeWordsList({ words, totalTargetMapped, coverage, pr
           {[
             { id: 'All', label: 'All Words', color: '#202122', bgSelected: '#3366cc', textSelected: '#fff', border: '#c8ccd1', borderSelected: '#3366cc' },
             { id: 'Bridge', label: 'Any link', color: '#3366cc', bgSelected: '#eaf3ff', textSelected: '#3366cc', border: '#c8ccd1', borderSelected: '#3366cc' },
-            ...[REL.COGNATE, REL.BORROWED_FROM, REL.SAME_MEANING, REL.LOOKS_ALIKE, REL.FALSE_FRIEND].map(type => {
+            ...[REL.COGNATE, REL.BORROWED_FROM, REL.SAME_MEANING, REL.FALSE_FRIEND].map(type => {
               const meta = relationMeta(type);
               const n = counts[type] || 0;
               return {
@@ -344,9 +347,10 @@ export default function BridgeWordsList({ words, totalTargetMapped, coverage, pr
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                     <div>
-                      <div style={{ fontSize: '19px', fontWeight: '800', color: '#202122', letterSpacing: '-0.01em' }}>
-                        {b.lemma}
-                      </div>
+                      <LexemeLink id={b.lexemeId}
+                                  style={{ fontSize: '19px', fontWeight: '800', color: '#202122', letterSpacing: '-0.01em' }}>
+                        <span {...langText}>{b.lemma}</span>
+                      </LexemeLink>
                       {b.targetIpa && (
                         <div style={{ fontSize: '13px', color: '#72777d', marginTop: '2px', fontFamily: 'monospace' }}>
                           /{b.targetIpa}/
@@ -379,13 +383,20 @@ export default function BridgeWordsList({ words, totalTargetMapped, coverage, pr
 
                   <div style={{ borderTop: '1px solid #c8ccd1', paddingTop: '12px', marginTop: '4px' }}>
                     <div style={{ fontSize: '13px', color: '#54595d' }}>
-                      Meaning: <strong style={{ color: '#202122' }}>{b.gloss}</strong>
+                      Meaning: <strong style={{ color: '#202122' }} {...langText}>{b.gloss}</strong>
                     </div>
-                    {b.isBridge && b.knownLemma && (
-                      <div style={{ fontSize: '13px', color: '#54595d', marginTop: '4px' }}>
-                        Linked to: <strong style={{ color: '#3366cc' }}>{b.knownLemma}</strong>
-                      </div>
-                    )}
+                    {b.isBridge && b.knownLemma && (() => {
+                      const rel = primaryRelation(b.relations) || {};
+                      return (
+                        <div style={{ fontSize: '13px', color: '#54595d', marginTop: '4px' }}>
+                          Linked to:{' '}
+                          <LexemeLink id={rel.knownLexemeId}
+                                      style={{ color: '#3366cc', fontWeight: 700 }}>
+                            <span {...langText}>{b.knownLemma}</span>
+                          </LexemeLink>
+                        </div>
+                      );
+                    })()}
                     {/* Say what the link actually is, so a shared meaning is never
                         mistaken for shared ancestry. */}
                     {(() => {
@@ -404,6 +415,20 @@ export default function BridgeWordsList({ words, totalTargetMapped, coverage, pr
                       <RelationBadge key={type} type={type} />
                     ))}
                   </div>
+
+                  {/* Words with a meaning link but no recorded origin are exactly
+                      the ones a contributor can improve, so the invitation appears
+                      there rather than on every card. */}
+                  {b.source !== 'curated' && !b.cognate && !b.borrowed && (
+                    <div style={{ paddingTop: '8px' }}>
+                      <DerivedFromEditor
+                        word={b}
+                        relation={primaryRelation(b.relations)}
+                        canEdit={canEdit}
+                        onDone={() => {}}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

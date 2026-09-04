@@ -2,7 +2,7 @@
 
 ## What WikiLinkua does
 
-WikiLinkua helps you learn a new language through the languages you already know. It finds words linked to the ones you know - genuine cognates, borrowings, translations and look-alikes, each labelled with which kind of link it actually is - plus sentences, videos and short reading material from Wikidata Lexemes and Wikimedia content.
+WikiLinkua helps you learn a new language through the languages you already know. It finds words linked to the ones you know - genuine cognates, borrowings and translations, each labelled with which kind of link it actually is - plus sentences, videos and short reading material from Wikidata Lexemes and Wikimedia content.
 
 ## First-time setup
 
@@ -30,10 +30,9 @@ type and the app tells you which one it is:
 | **Same meaning** | There is a word for the same thing in a language you know. It says **nothing** about the words being related. | P5137 "item for this sense" |
 | **Related meaning** | The meanings are linked (synonym or antonym). | P5973 / P5974 |
 | **False friend** | Looks like a word you know but means something else. | P5976 + a curated list |
-| **Looks or sounds similar** | Only the shape or sound resembles a word you know, with **no** recorded historical link. This may be pure coincidence. | Form and IPA comparison (P898) |
 
 Only the first three claim the words share a history. The others are about
-meaning or appearance, and the app labels them that way on purpose - a word for
+meaning, and the app labels them that way on purpose - a word for
 "animal" that happens to point at the same concept as an English word is a
 translation, not a cognate.
 
@@ -81,13 +80,33 @@ Every figure in the app is either measured exactly or not shown at all.
 
 ## Main screens
 
-### Home
+### Home (practice)
 
-The home screen is the control center. It shows your main lesson, the practice modes, and your overall vocabulary progress.
+Logging in lands you on the practice dashboard: your daily lesson, every drill, and your
+overall progress. A banner at the top opens the guided course.
+
+### Learn (the guided course)
+
+Learn is the structured route through the same vocabulary. Words are grouped into ordered
+units of 8; one button always tells you what to do next, and units unlock as you finish
+them. A streak and a daily goal sit at the top.
+
+Units are ordered so that **words you half-know already** (real cognates and borrowings from
+your languages) come first, then the **most basic vocabulary** — measured by how many of the
+world's languages have a word for the same concept.
+
+A unit is not just flashcards. You meet each word on a card, **hear it and pick the meaning**
+(for words that have a recording), recall it in both directions, get warned about any false
+friends, and finish with a **real sentence** that uses one of the unit's words — with a
+translation and audio where they exist. Each unit card says what it contains before you
+start, so a thin unit is visible up front.
+
+Every individual mode — flashcards, recall, odd one out, match pairs, friend or faux — stays
+available on the home screen for free practice outside the course.
 
 ### Words
 
-Use Words to browse the vocabulary list, search it, and filter it by link type: cognates, borrowings, same-meaning words, look-alikes and false friends. A counter at the top shows how many words fall into each, so you can see at a glance how much of the overlap is real shared history versus just shared meaning.
+Use Words to browse the vocabulary list, search it, and filter it by link type: cognates, borrowings, same-meaning words and false friends. A counter at the top shows how many words fall into each, so you can see at a glance how much of the overlap is real shared history versus just shared meaning.
 
 ### Phrases
 
@@ -107,6 +126,20 @@ that is the only thing that makes a video usable at all.
 ### Article
 
 Use Article to search Wikipedia articles in your target language and turn article text into flashcards.
+
+### Editing Wikidata from inside the app
+
+Every word is a link to its Wikidata lexeme, marked with the Wikidata logo — click it to
+open the page where you can edit it.
+
+Words that show "Same meaning" but have no recorded origin also offer **Add a word origin**.
+If you know the older word it came from, type that word's lexeme id (like `L1002578`) and
+WikiLinkua records it on Wikidata for you, under your own account. The app shows you which
+word that id refers to before saving.
+
+Point at the **ancestor**, not at the other word: two cognates usually come from a shared
+older word rather than from each other, so recording them as derived from each other would
+be wrong.
 
 ### Contribute
 

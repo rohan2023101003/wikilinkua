@@ -410,6 +410,37 @@ export default function GameModes({ words, progress, onAnswerWord, onNavigate, t
         </button>
       </div>
 
+      {/* The guided course is the structured route through the same vocabulary;
+          this dashboard is free practice. Without a pointer here the course would
+          be undiscoverable now that Practice is the landing page. */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '16px', flexWrap: 'wrap', marginBottom: '28px', padding: '16px 20px',
+          border: '1px solid #b8d4f9', borderRadius: '2px', background: '#eaf3ff',
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: '15px', color: '#202122' }}>
+            Prefer a step-by-step course?
+          </div>
+          <div style={{ fontSize: '13px', color: '#54595d', marginTop: '2px', lineHeight: 1.5 }}>
+            Learn takes you through ordered units - words you half-know first, then the most
+            basic vocabulary - and always tells you what to do next.
+          </div>
+        </div>
+        <button
+          onClick={() => onNavigate('learn')}
+          style={{
+            padding: '10px 20px', borderRadius: '2px', background: '#3366cc', color: '#fff',
+            border: '1px solid #3366cc', fontWeight: 700, fontSize: '14px', cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Open the course
+        </button>
+      </div>
+
       {/* Main Grid Layout */}
       <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '4fr 6fr', gap: '32px' }}>
         

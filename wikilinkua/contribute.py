@@ -491,3 +491,138 @@ def _upload_to_commons(token, audio_bytes, word, code, lang_name, username,
                         "upload grant. Log out and log in again to refresh it."),
         }
     return {"ok": False, "message": info_ or "Upload did not succeed."}
+
+LEXEME_RE = __import__("re").compile(r"^L[1-9][0-9]*$")
+
+
+def _wikidata_session(token):
+    import requests
+    sess = requests.Session()
+    sess.headers.update({
+        "Authorization": "Bearer " + token,
+        "User-Agent": "WikiLinkua/1.0 (https://wikilinkua.toolforge.org)",
+    })
+    return sess
+
+
+@bp.route("/api/lexeme/<lexeme_id>")
+def lexeme_summary(lexeme_id):
+    """Lemma, language and existing derivation for one lexeme.
+
+    Used to preview an edit before it is made: the learner should see *which*
+    word they are about to point at, not just an L-number they typed.
+    """
+    import requests
+    if not LEXEME_RE.match(lexeme_id or ""):
+        return jsonify(ok=False, message="Not a lexeme id (expected something like L1234).")
+    try:
+        data = requests.get(
+            current_app.config["WIKIDATA_API_URL"],
+            params={"action": "wbgetentities", "ids": lexeme_id, "format": "json"},
+            headers={"User-Agent": "WikiLinkua/1.0 (https://wikilinkua.toolforge.org)"},
+            timeout=20,
+        ).json()
+    except Exception as exc:  # noqa: BLE001
+        return jsonify(ok=False, message="Could not reach Wikidata: " + str(exc))
+
+    ent = (data.get("entities") or {}).get(lexeme_id)
+    if not ent or ent.get("missing") is not None:
+        return jsonify(ok=False, message=lexeme_id + " does not exist on Wikidata.")
+
+    lemmas = [v.get("value", "") for v in (ent.get("lemmas") or {}).values()]
+    existing = [
+        c.get("mainsnak", {}).get("datavalue", {}).get("value", {}).get("id")
+        for c in (ent.get("claims") or {}).get("P5191", [])
+    ]
+    return jsonify(
+        ok=True,
+        id=lexeme_id,
+        lemma=lemmas[0] if lemmas else lexeme_id,
+        lemmas=lemmas,
+        language=ent.get("language", ""),
+        category=ent.get("lexicalCategory", ""),
+        derivedFrom=[e for e in existing if e],
+    )
+
+
+@bp.route("/api/lexeme/derived-from", methods=["POST"])
+def add_derived_from():
+    """Record P5191 "derived from lexeme" on the learner's behalf.
+
+    This is the edit that turns a "same meaning" pair into a real etymological
+    link, and it is the single most valuable statement a WikiLinkua user can add:
+    every cognate the app can show rests on P5191.
+
+    Deliberately NOT a one-click "these two are cognates" button. Cognates usually
+    descend from a shared ancestor rather than from each other - English *night*
+    and German *Nacht* are cognates, but neither derives from the other. Writing
+    lexeme -> sibling would be false. So the caller must name the ancestor, and
+    the UI explains that before offering the form.
+    """
+    token = session.get("oauth_token")
+    if not token:
+        return jsonify(ok=False, message=(
+            "Editing Wikidata needs a real Wikimedia login. The development login "
+            "has no token."))
+
+    payload = request.get_json(silent=True) or request.form
+    lexeme = (payload.get("lexeme") or "").strip().upper()
+    ancestor = (payload.get("ancestor") or "").strip().upper()
+
+    if not LEXEME_RE.match(lexeme) or not LEXEME_RE.match(ancestor):
+        return jsonify(ok=False, message="Both ids must look like L1234.")
+    if lexeme == ancestor:
+        return jsonify(ok=False, message="A word cannot be derived from itself.")
+
+    sess = _wikidata_session(token)
+    api = current_app.config["WIKIDATA_API_URL"]
+
+    try:
+        entities = sess.get(api, params={
+            "action": "wbgetentities", "ids": lexeme + "|" + ancestor, "format": "json",
+        }, timeout=25).json().get("entities", {})
+    except Exception as exc:  # noqa: BLE001
+        return jsonify(ok=False, message="Could not reach Wikidata: " + str(exc))
+
+    for lid in (lexeme, ancestor):
+        ent = entities.get(lid)
+        if not ent or ent.get("missing") is not None:
+            return jsonify(ok=False, message=lid + " does not exist on Wikidata.")
+
+    # Never write a duplicate statement.
+    already = [
+        c.get("mainsnak", {}).get("datavalue", {}).get("value", {}).get("id")
+        for c in (entities[lexeme].get("claims") or {}).get("P5191", [])
+    ]
+    if ancestor in already:
+        return jsonify(ok=True, alreadyPresent=True,
+                       message=lexeme + " is already recorded as derived from " + ancestor + ".")
+
+    csrf = sess.get(api, params={
+        "action": "query", "meta": "tokens", "type": "csrf", "format": "json",
+    }, timeout=20).json().get("query", {}).get("tokens", {}).get("csrftoken", "")
+    if not csrf or csrf == "+\\":
+        return jsonify(ok=False, message=(
+            "Wikidata refused the edit token. Log out and log in again so the "
+            "current permissions apply."))
+
+    import json as _json
+    res = sess.post(api, data={
+        "action": "wbcreateclaim",
+        "entity": lexeme,
+        "property": "P5191",
+        "snaktype": "value",
+        "value": _json.dumps({"entity-type": "lexeme", "id": ancestor}),
+        "token": csrf,
+        "summary": "add derived from lexeme via WikiLinkua",
+        "format": "json",
+    }, timeout=30).json()
+
+    if res.get("success") == 1:
+        lemma = next(iter((entities[ancestor].get("lemmas") or {}).values()), {}).get("value", ancestor)
+        return jsonify(ok=True, message="Recorded: " + lexeme + " derives from " + ancestor +
+                                        " (" + lemma + ").",
+                       url="https://www.wikidata.org/wiki/Lexeme:" + lexeme)
+    err = res.get("error", {})
+    return jsonify(ok=False, message="Wikidata rejected the edit: " +
+                                     (err.get("info") or err.get("code") or "unknown error"))

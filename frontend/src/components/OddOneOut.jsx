@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { hasEtymologicalLink, primaryRelation, explainRelation } from '../utils/relations';
+import { langText } from '../utils/text';
 
 const ROUNDS = 5;
 // Lexeme lemmas can be whole descriptive phrases ("agent chargé de protection et
@@ -149,7 +150,7 @@ export function OddOneOutExercise({ round, answer, onAnswer }) {
               className={'quiz-option-button odd-one-out-option' + (revealed ? ' is-revealed' : '')}
               title={choice.lemma}
             >
-              <div style={{ fontSize: lemmaFontSize(choice.lemma), fontWeight: '800', color: '#202122', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+              <div style={{ fontSize: lemmaFontSize(choice.lemma), fontWeight: '800', color: '#202122', letterSpacing: '-0.01em', lineHeight: 1.25 }} {...langText}>
                 {choice.lemma}
               </div>
 

@@ -30,7 +30,8 @@
     }
     .wl-nav__brand {
       font-weight: 800; font-size: 1.35rem; color: #202122;
-      letter-spacing: -0.02em; text-decoration: none; margin-right: auto;
+      letter-spacing: -0.02em; text-decoration: none; margin-right: 16px;
+      flex-shrink: 0;
     }
     .wl-nav__brand span { color: #3366cc; }
     .wl-nav__link {
@@ -41,7 +42,19 @@
     }
     .wl-nav__link:hover { color: #202122; text-decoration: none; }
     .wl-nav__link--active { color: #3366cc; font-weight: 700; border-bottom-color: #3366cc; }
-    .wl-nav__divider { width: 1px; height: 20px; background: #eaecf0; margin: 0 4px; }
+    .wl-nav__divider {
+      width: 1px; height: 18px; background: #c8ccd1; margin: 0 6px;
+      flex-shrink: 0; display: inline-block;
+    }
+    /* The nav must survive a phone: ten destinations will not fit on one line. */
+    .wl-nav__scroll {
+      display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; scrollbar-width: thin; margin-right: auto;
+    }
+    .wl-nav__scroll::-webkit-scrollbar { height: 3px; }
+    @media (max-width: 900px) {
+      .wl-nav__inner { gap: 12px; padding: 10px 12px; }
+    }
     .wl-nav__user { font-size: 0.9rem; color: #54595d; padding: 0 8px; }
 
     /* Flash messages */
@@ -81,12 +94,25 @@
 <body>
 
 <nav class="wl-nav">
-  <div class="wl-nav__inner">
+  <div class="wl-nav__inner wl-nav__inner">
     <a class="wl-nav__brand" href="/">Wiki<span>Linkua</span></a>
-    <a class="wl-nav__link {% block nav_home %}{% endblock %}" href="/">Home</a>
-    <a class="wl-nav__link {% block nav_contribute %}{% endblock %}" href="/contribute">Contribute</a>
-    <a class="wl-nav__link {% block nav_guide %}{% endblock %}" href="/guide">Guide</a>
-    <div class="wl-nav__divider"></div>
+    {# Mirrors the in-app navigation, same groups and same order, so the chrome
+       does not change when you move between a server page and the app. #}
+    <div class="wl-nav__scroll">
+      <a class="wl-nav__link {% block nav_home %}{% endblock %}" href="/">Home</a>
+      <a class="wl-nav__link" href="/learn">Learn</a>
+      <span class="wl-nav__divider"></span>
+      <a class="wl-nav__link" href="/words">Words</a>
+      <a class="wl-nav__link" href="/phrases">Phrases</a>
+      <a class="wl-nav__link" href="/video">Video</a>
+      <a class="wl-nav__link" href="/article">Article</a>
+      <span class="wl-nav__divider"></span>
+      <a class="wl-nav__link {% block nav_contribute %}{% endblock %}" href="/contribute">Contribute</a>
+      <span class="wl-nav__divider"></span>
+      <a class="wl-nav__link" href="/progress">Progress</a>
+      <a class="wl-nav__link {% block nav_guide %}{% endblock %}" href="/guide">Guide</a>
+    </div>
+    <span class="wl-nav__divider"></span>
     {% if current_user %}
       <span class="wl-nav__user">{{ current_user.username }}</span>
       <form method="post" action="/logout" style="display:inline">

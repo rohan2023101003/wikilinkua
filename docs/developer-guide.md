@@ -88,8 +88,9 @@ is not automatically a cognate.**
   `related_meaning` from P5973/P5974) never imply shared history. A Malayalam
   word whose sense points at the same concept item as an English word is a
   translation equivalent, nothing more.
-- `looks_alike` (form/IPA similarity) is a *warning*, not a relationship, and is
-  suppressed when a real etymological link already explains the resemblance.
+- There is deliberately **no "looks alike" relation**. Form/IPA resemblance without
+  derivation evidence told the learner nothing they could act on, so it was removed;
+  `phoneticMatch` survives only as an internal seed heuristic.
 
 `buildRelations()` assembles the typed list, `primaryRelation()` picks what a
 word leads with, and `explainRelation()` produces the sentence shown to the
@@ -154,6 +155,53 @@ regenerating never clobbers them.
 Because the list is ~1.5k entries, look languages up with `getLanguage(qid)` (map-backed
 and alias-aware) rather than `LANGUAGES.find(...)`, especially inside per-word loops.
 
+### The course engine
+
+`frontend/src/utils/course.js` turns the word list into an ordered path and answers "what
+next?". Rules worth keeping:
+
+- **Ordering is banded, not blended.** Etymologically linked words form band 0, everything
+  else band 1; within a band, sort by concept commonness. Blending them into one score makes
+  the ordering impossible to explain to a learner.
+- **`commonness` is how many languages lexicalise the concept**, from
+  `fetchConceptCommonness()`. The ungrouped aggregate 502s on WDQS, so only the top slice is
+  fetched (`ORDER BY DESC LIMIT`). Never present it as corpus frequency.
+- **Deterministic.** No shuffling anywhere in `buildCourse` - a path that rearranges itself
+  between visits destroys the sense of progress. Ties break on lexeme id.
+- A unit is complete when every word reaches **box 2**, not on first sight.
+- `buildLessonQueue()` mixes stages: flashcards (new words only) -> listen (words with P443
+  only) -> recall -> reverse recall -> false friends -> one sentence. The sentence step must
+  NOT grade a word's SRS: it tests comprehension of a phrase, and `UnitLesson` skips
+  `onAnswerWord` for it.
+- The sentence step fetches lazily (Tatoeba, then P5831) and reports honestly when a language
+  has no sentences rather than stalling the lesson.
+- `nextAction()` puts due reviews ahead of new units once 5+ are due.
+
+### Writing to Wikidata
+
+Two endpoints write on the user's behalf with their OAuth token. Both are ordinary edits to
+existing entities, so they need only the `editpage` grant - uploading a NEW Commons file is
+the only thing that also needs `createpage`.
+
+| Endpoint | Writes | Guard rails |
+|---|---|---|
+| `POST /api/lexeme/derived-from` | **P5191** on a lexeme | ids must match `^L[1-9][0-9]*$`; both entities must exist; refuses self-derivation; never writes a duplicate |
+| `POST /api/contribute-audio`, `POST /api/link-audio` | **P443** on a *form* | only when the recorded word matches exactly one form; refuses when a form already has audio |
+| `GET /api/lexeme/<id>` | nothing | preview so the UI can show *which* word an id refers to before saving |
+
+**The rule the P5191 editor encodes:** ask for the ANCESTOR, never offer a one-click "these
+two are cognates". Cognates usually descend from a shared older word rather than from each
+other (*night* / *Nacht*), so a sibling-to-sibling P5191 would be false data. The UI states
+this above the form. If you ever add a bulk or one-click path here, keep that constraint.
+
+### Form-aware text matching
+
+`matchWordsInText(text, words, formIndex)` is the single matcher for Article and Video.
+`formIndex` (surface form -> lexemeId) comes from `fetchLexemeForms()` and is essential: in
+Malayalam, matching lemmas alone found nothing in ordinary prose. It falls back to lemma
+matching when the index is missing. The index is cached with the words, serialised as pairs
+because a `Map` does not survive JSON.
+
 ### Displayed statistics: never derive them from the word list
 
 `loadAndNormalizeWords` returns a **capped sample**. `WL_MAX_BRIDGES` limits the bridge query
@@ -182,7 +230,8 @@ which view opens. Keep the two in sync when adding routes.
 
 | Path | View |
 |---|---|
-| `/`, `/app/` | home |
+| `/`, `/app/`, `/practice` | practice dashboard — **where login returns you** |
+| `/learn` | the guided course |
 | `/wikilinkua/` | Words |
 | `/false-friends/` | Friend or Faux |
 | `/contribute` | Contribute (data gaps) |
@@ -278,15 +327,18 @@ adding a language, otherwise it will silently return nothing.
 
 ## UI and design conventions
 
-The frontend follows Wikimedia Codex styling and tokens, then layers a small amount of local CSS for page-specific layout.
+**See [`UI-GUIDE.md`](../UI-GUIDE.md)** for the full set: navigation and URL map, design
+tokens, right-to-left text handling, Codex gotchas, and the rules for displaying numbers.
 
-Use this pattern when adding UI:
+The short version:
 
-- prefer Codex cards, buttons, and icons where possible,
-- keep colors close to Wikimedia blue and neutral grays,
-- keep layouts simple and responsive,
-- avoid external CDNs for runtime assets,
-- keep the build output local and committed.
+- new UI uses the tokens in `frontend/src/theme.js`, not hard-coded hexes,
+- any element rendering language text spreads `langText` from `frontend/src/utils/text.js`
+  so right-to-left words render correctly,
+- `.cdx-card` is `display: flex` in Codex and is defaulted back to `block` in `index.css`,
+- never derive a displayed statistic from the capped word list,
+- avoid external CDNs; keep the build output local and committed,
+- run the render smoke test before shipping.
 
 ## Performance and network considerations
 

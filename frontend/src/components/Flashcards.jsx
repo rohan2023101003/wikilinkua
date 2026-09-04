@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { playAudio } from '../utils/audio';
 import { RelationBadge, SoundIcon } from './Badges';
+import { LexemeLink } from './WikidataLink';
 import { relationTypes, primaryRelation, explainRelation } from '../utils/relations';
+import { langText } from '../utils/text';
 
 export function FlashcardExercise({ word, onAnswer }) {
   const [reveal, setReveal] = useState(false);
@@ -47,7 +49,7 @@ export function FlashcardExercise({ word, onAnswer }) {
         {!reveal ? (
           /* Card Front - Centered */
           <div style={{ width: '100%', border: '1px solid #c8ccd1', borderRadius: '2px', padding: '36px 24px', textAlign: 'center', background: '#f8f9fa', boxSizing: 'border-box' }}>
-            <div style={{ fontSize: '40px', fontWeight: '800', letterSpacing: '-.02em', color: '#202122' }}>
+            <div style={{ fontSize: '40px', fontWeight: '800', letterSpacing: '-.02em', color: '#202122' }} {...langText}>
               {word.lemma}
             </div>
             {word.targetIpa && (
@@ -82,11 +84,13 @@ export function FlashcardExercise({ word, onAnswer }) {
           /* Card Back - Centered */
           <div style={{ width: '100%', border: '1px solid #c8ccd1', borderRadius: '2px', padding: '36px 24px', background: '#f8f9fa', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '18px', color: '#54595d', fontWeight: '600' }}>{word.lemma}</span>
+              <LexemeLink id={word.lexemeId} style={{ fontSize: '18px', color: '#54595d', fontWeight: '600' }}>
+                <span {...langText}>{word.lemma}</span>
+              </LexemeLink>
               {word.targetIpa && <span style={{ fontSize: '14px', color: '#72777d', fontFamily: 'monospace' }}>/{word.targetIpa}/</span>}
             </div>
             
-            <div style={{ fontSize: '38px', fontWeight: '800', margin: '6px 0 12px 0', letterSpacing: '-0.02em', color: '#202122' }}>
+            <div style={{ fontSize: '38px', fontWeight: '800', margin: '6px 0 12px 0', letterSpacing: '-0.02em', color: '#202122' }} {...langText}>
               {word.gloss || word.knownLemma}
             </div>
 

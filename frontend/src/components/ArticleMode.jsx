@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { FlashcardExercise } from './Flashcards';
 import { getLanguage } from '../utils/sparql';
+import { matchWordsInText } from '../utils/course';
 
 const CARD = { border: '1px solid #c8ccd1', borderRadius: '2px', background: '#fff', padding: '24px' };
 const BTN_PRIMARY = { padding: '10px 20px', borderRadius: '2px', background: '#3366cc', color: '#fff', border: '1px solid #3366cc', fontWeight: '600', cursor: 'pointer', fontSize: '14px' };
@@ -67,7 +68,7 @@ function pickSeeds(words, progress) {
   return pool.filter(w => seen.has(w.lexemeId) ? false : (seen.add(w.lexemeId), true)).slice(0, 12);
 }
 
-export default function ArticleMode({ profile, words, progress, onAnswerWord, onNavigate }) {
+export default function ArticleMode({ profile, words, progress, formIndex, onAnswerWord, onNavigate }) {
   const [query, setQuery] = useState('');
   const [phase, setPhase] = useState('idle');
   const [searchResults, setSearchResults] = useState([]);
@@ -239,16 +240,14 @@ export default function ArticleMode({ profile, words, progress, onAnswerWord, on
   };
 
   const handleMakeFlashcards = () => {
-    const tokens = (extract.toLowerCase().match(/[\p{L}]+/gu) || []).filter(t => t.length > 2);
-    const unique = [...new Set(tokens)];
-    const wordMap = new Map(words.map(w => [w.lemma.toLowerCase(), w]));
-    const matched = unique.map(t => wordMap.get(t)).filter(w => w?.gloss);
-    const deduped = [...new Map(matched.map(w => [w.lexemeId, w])).values()];
+    // Match against every recorded FORM, not just the dictionary form - otherwise
+    // inflected languages match almost nothing.
+    const deduped = matchWordsInText(extract, words, formIndex, 20);
     if (!deduped.length) {
       setError('No matching vocabulary found in this article. Try a different topic.');
       return;
     }
-    setFcWords(deduped.slice(0, 20));
+    setFcWords(deduped);
     setFcIndex(0); setFcScore(0); setFcDone(false); setError(null);
     setPhase('flashcards');
   };

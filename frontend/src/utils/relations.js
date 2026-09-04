@@ -18,8 +18,6 @@
  *   same_meaning    both senses point at the same concept item     (P5137)
  *   related_meaning synonym / antonym link between senses          (P5973 / P5974)
  *   false_friend    explicitly marked as a false friend            (P5976 + curated)
- *   looks_alike     the forms simply resemble each other, with NO evidence of a
- *                   historical link. This is a warning, not a relationship.
  *
  * Only `cognate`, `borrowed_from` and `source_of` are etymological claims. The
  * others are semantic or purely superficial, and the UI must never present them
@@ -34,7 +32,6 @@ export const REL = {
   SAME_MEANING: 'same_meaning',
   RELATED_MEANING: 'related_meaning',
   FALSE_FRIEND: 'false_friend',
-  LOOKS_ALIKE: 'looks_alike',
 };
 
 /**
@@ -106,15 +103,6 @@ export const RELATION_META = {
     etymological: false,
     color: '#bf3c2c', bg: '#fee7e6', border: '#f9c5c0',
   },
-  [REL.LOOKS_ALIKE]: {
-    label: 'Looks or sounds similar',
-    filterLabel: 'Look-alikes',
-    short: 'Looks alike',
-    description: 'Only the form resembles a word you know - no known historical link, so this may be coincidence.',
-    property: 'P898 (form similarity)',
-    etymological: false,
-    color: '#886600', bg: '#fef6e7', border: '#f2d9a0',
-  },
 };
 
 /** Strongest claim first. Used to pick the badge a word leads with. */
@@ -126,7 +114,6 @@ export const RELATION_ORDER = [
   REL.TRANSLATION,
   REL.SAME_MEANING,
   REL.RELATED_MEANING,
-  REL.LOOKS_ALIKE,
 ];
 
 export function relationMeta(type) {
@@ -182,8 +169,6 @@ export function explainRelation(relation, targetLemma) {
       return `Its meaning is linked to ${known}.`;
     case REL.FALSE_FRIEND:
       return `Looks like ${known}, but does not mean the same thing.`;
-    case REL.LOOKS_ALIKE:
-      return `Resembles ${known}, but Wikidata records no shared origin - this may be a coincidence.`;
     default:
       return '';
   }
@@ -204,7 +189,6 @@ export function buildRelations(evidence) {
     sameMeaning = [],
     relatedMeaning = [],
     falseFriend = null,   // { knownLemma, knownLangCode } | null
-    formSimilar = [],     // [{ knownLexemeId, knownLemma, knownLangCode, similarity }]
   } = evidence;
 
   const relations = [];
@@ -218,12 +202,6 @@ export function buildRelations(evidence) {
   add(REL.RELATED_MEANING, relatedMeaning);
   if (falseFriend) relations.push({ type: REL.FALSE_FRIEND, ...falseFriend });
 
-  // Form similarity is only worth mentioning when nothing better explains the
-  // resemblance. If the words are already known cognates, "looks alike" adds
-  // nothing; if they are not, it is precisely the case the learner must not
-  // mistake for a real relationship.
-  const etymological = relations.some(r => relationMeta(r.type).etymological);
-  if (!etymological) add(REL.LOOKS_ALIKE, formSimilar);
 
   return relations;
 }

@@ -239,6 +239,82 @@ export async function fetchBridgeCount(knownLangs, targetLangQid) {
   return rows.length ? parseInt(rows[0].n.value, 10) || 0 : null;
 }
 
+const FORMS_LIMIT = 40000;
+const COMMONNESS_LIMIT = 1200;
+
+/**
+ * Every written form of every learner-ready lexeme in a language.
+ *
+ * Needed because real text contains inflected words: a Malayalam article says
+ * വിരുന്നുകാരന്റെ, while the lexeme's lemma is വിരുന്നുകാരൻ. Matching article and
+ * subtitle text against lemmas alone misses nearly everything in an inflected
+ * language, which is why Article and Video modes used to find so few words.
+ */
+export async function fetchLexemeForms(targetLangQid) {
+  const sparql = `
+    SELECT ?lex ?rep WHERE {
+      ?lex dct:language wd:${targetLangQid} ;
+           ontolex:sense/wdt:P5137 [] ;
+           ontolex:lexicalForm/ontolex:representation ?rep .
+    }
+    LIMIT ${FORMS_LIMIT}
+  `;
+  return runSparqlQuery(sparql, 40000);
+}
+
+/** normalised surface form -> lexemeId, from a fetchLexemeForms result. */
+export function buildFormIndex(data) {
+  const index = new Map();
+  bindings(data).forEach(row => {
+    const id = lexId(row.lex && row.lex.value);
+    const rep = row.rep && row.rep.value;
+    if (!id || !rep) return;
+    const key = normaliseWord(rep);
+    if (key && !index.has(key)) index.set(key, id);
+  });
+  return index;
+}
+
+/** Lowercase + strip combining marks, so text and forms compare fairly. */
+export function normaliseWord(text) {
+  return (text || '').toLowerCase().normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\u0900-\u0DFF]/gu, '');
+}
+
+/**
+ * How basic a concept is, measured as **how many of the world's languages have a
+ * word for it**. Water, milk, mother, eye and house come top; obscure concepts
+ * come last. This is our stand-in for a frequency list: it is Wikimedia-native,
+ * needs no external corpus, and works for every language at once.
+ *
+ * It is NOT corpus frequency, and the UI must not call it that - it measures how
+ * widely a concept is lexicalised, which correlates well with "basic vocabulary".
+ *
+ * Only the top slice is fetched: the ungrouped aggregate times out on WDQS, and a
+ * curriculum only needs the common end anyway.
+ */
+export async function fetchConceptCommonness(targetLangQid, limit = COMMONNESS_LIMIT) {
+  const sparql = `
+    SELECT ?concept (COUNT(DISTINCT ?lang) AS ?langs) WHERE {
+      ?t dct:language wd:${targetLangQid} ;
+         ontolex:sense/wdt:P5137 ?concept .
+      ?other ontolex:sense/wdt:P5137 ?concept ;
+             dct:language ?lang .
+    }
+    GROUP BY ?concept
+    ORDER BY DESC(?langs)
+    LIMIT ${limit}
+  `;
+  const data = await runSparqlQuery(sparql, 45000);
+  const map = new Map();
+  bindings(data).forEach(row => {
+    const id = lexId(row.concept && row.concept.value);
+    if (id) map.set(id, parseInt(row.langs.value, 10) || 0);
+  });
+  return map;
+}
+
 const DERIVATION_LIMIT = 20000;
 
 /**
@@ -416,7 +492,7 @@ export async function fetchP5976FalseFriends(knownLangs, targetLangQid) {
 // One cache slot per language pair, so switching languages never serves the
 // previous pair's words. Entries are large, so we keep only a few and evict the
 // oldest when the browser refuses the write.
-const WORDS_CACHE_KEY = 'wikilinkua_words_cache_v6';
+const WORDS_CACHE_KEY = 'wikilinkua_words_cache_v7';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CACHE_MAX_ENTRIES = 3;
 
@@ -485,13 +561,19 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
     return { results: { bindings: [] } };
   };
 
-  const [totalTargetMapped, bridgeCount, rawBridges, rawTargetDeriv, ...rawKnownDeriv] = await Promise.all([
+  const [totalTargetMapped, bridgeCount, rawBridges, rawForms, commonness,
+         rawTargetDeriv, ...rawKnownDeriv] = await Promise.all([
     fetchTotalTargetMapped(targetLangQid),
     fetchBridgeCount(knownLangs, targetLangQid).catch(e => {
       console.warn('WikiLinkua: exact bridge count unavailable -', e.message);
       return null;    // the UI hides the percentage rather than showing a wrong one
     }),
     fetchBridgeWordsRaw(knownLangs, targetLangQid),
+    fetchLexemeForms(targetLangQid).catch(softFail('lexeme forms')),
+    fetchConceptCommonness(targetLangQid).catch(e => {
+      console.warn('WikiLinkua: concept commonness unavailable -', e.message);
+      return new Map();   // curriculum falls back to relationship ordering
+    }),
     fetchDerivationEdges(targetLangQid).catch(softFail('target derivation data')),
     ...knownLangs.map(l =>
       fetchDerivationEdges(l.qid).catch(softFail(l.name + ' derivation data'))
@@ -593,29 +675,12 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
       knownLangCode: p.code || '',
     }));
 
-    // Resemblance without any derivation evidence: flagged as a look-alike, and
-    // buildRelations() drops it entirely when a real etymological link exists.
-    const formSimilar = knownPairs
-      .map(p => {
-        const ipaSim = getIpaSimilarity(targetIpa, p.ipa);
-        const lemmaSim = getLemmaSimilarity(targetLemma, p.lemma);
-        const best = Math.max(ipaSim === null ? 0 : ipaSim, lemmaSim === null ? 0 : lemmaSim);
-        return { p, best, strong: (ipaSim !== null && ipaSim >= 0.6) || (lemmaSim !== null && lemmaSim >= 0.7) };
-      })
-      .filter(x => x.strong)
-      .map(x => ({
-        knownLexemeId: x.p.lexUri ? x.p.lexUri.split('/').pop() : null,
-        knownLemma: x.p.lemma || '',
-        knownLangCode: x.p.code || '',
-        similarity: x.best,
-      }));
 
     const relations = buildRelations({
       cognates: decorateDerived(derived.cognates),
       borrowedFrom: decorateDerived(derived.borrowedFrom),
       sourceOf: decorateDerived(derived.sourceOf),
       sameMeaning,
-      formSimilar,
     });
     const primary = primaryRelation(relations);
 
@@ -644,6 +709,9 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
       relations,
       primaryRelationType: primary ? primary.type : null,
       phoneticMatch: ipaSimilarity !== null && ipaSimilarity >= 0.6,
+      // How many languages have a word for this concept: our proxy for how
+      // basic the word is. 0 = outside the common slice we fetched.
+      commonness: commonness.get(row.concept.value.split('/').pop()) || 0,
       falseFriend,
       audioUrl: targetAudio,
       knownLemma: knownLemma,
@@ -756,8 +824,12 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
 
   const allWords = Array.from(finalMap.values());
 
+  const formIndex = buildFormIndex(rawForms);
+
   const result = {
     words: allWords,
+    // Serialised as pairs: a Map does not survive JSON caching.
+    formIndex: Array.from(formIndex.entries()),
     totalTargetMapped,
     bridgeCount,
     // The bridge query is capped; when it comes back full the list is a sample.

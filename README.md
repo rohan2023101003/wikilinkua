@@ -33,7 +33,6 @@ WikiLinkua never blurs them. Every link the app shows carries its **type**, its
 | **Same meaning** | A word for the same thing exists in your language. **Says nothing about shared history** | **P5137** `item for this sense` |
 | **Related meaning** | Meanings are linked (synonym/antonym) | **P5973** / **P5974** *(defined; not fetched)* |
 | **False friend** | Looks like a word you know, means something else | **P5976** + a curated list |
-| **Looks or sounds similar** | Only the *shape* resembles a word you know — **may be coincidence** | Levenshtein over lemmas and **P898** IPA |
 
 Only the first three are claims about word history. A word whose sense points at the same
 concept item as an English word is a **translation equivalent** — calling that a cognate
@@ -55,6 +54,41 @@ Pick the languages you know and one to learn. Everything below is then generated
 pair. Progress is saved **per language pair**: learn 7% of one language, switch to another,
 and the new one starts at 0% — switch back and the first is exactly where you left it.
 
+### Learn — the guided path (`/learn`)
+Free practice is the landing page; **Learn** is the structured route through the same
+vocabulary, linked from the top of it. Words are split into ordered units of 8, and exactly
+one button tells you what to do next — start a unit, continue one, or
+clear your due reviews. Units unlock in sequence, each showing a progress ring, and a
+streak plus daily goal sit at the top.
+
+**How the order is chosen** — this is the curriculum:
+
+1. **Words you half-know already** come first: anything with a genuine etymological link
+   (cognate or borrowing) to a language you speak. That head start is the one thing this
+   app can offer that a generic course cannot.
+2. **Then the most basic vocabulary**, measured by *how many of the world's languages have
+   a word for the same concept*. Water, milk, mother, eye and house sort to the top;
+   obscure terms sink. This is a Wikimedia-native stand-in for a frequency list — it needs
+   no external corpus and works for every language at once. It is **not** corpus frequency
+   and the app never calls it that.
+
+**Inside a unit** a word is met several ways, not drilled once:
+
+| Stage | What it does | Data behind it |
+|---|---|---|
+| Meet the words | Card with meaning, audio auto-plays | P5137, P443 |
+| **Listen** | Hear it, choose the meaning — recognition by ear is a separate skill | **P443** (only words that have a recording) |
+| Word → meaning | Recall | — |
+| Meaning → word | Recall, other direction | — |
+| Spot the traps | False friends in this unit | P5976 + curated |
+| **Use it** | A real sentence containing one of the unit's words, with translation and audio | **Tatoeba**, **P5831** fallback, **MinT** |
+
+The unit card states what you are getting ("8 words · 3 to listen to · 1 false friend · a
+sentence") so a thin unit is visible before you start. Ordering is deterministic: the path
+never rearranges itself between visits.
+
+*Uses:* **P5191** (head start), plus a concept-commonness query over **P5137**.
+
 ### Profile / onboarding
 Choose known languages and a target from **~1,560 languages** — every language that has
 lexemes on Wikidata. Each shows its lexeme count, because that count is the honest
@@ -66,7 +100,7 @@ hidden behind a "show all" toggle, and picking a thin language warns you up fron
 
 ### Words
 Browse, search and filter the target vocabulary by link type — cognates, borrowings,
-same-meaning, look-alikes, false friends — with a live count for each. Every word card
+same-meaning, false friends — with a live count for each. Every word card
 shows its badge, the word it links to, and *why* they are linked. Audio plays where a
 recording exists.
 
@@ -111,6 +145,10 @@ browser.
 ### Article
 Search Wikipedia in your target language, read article extracts, and build flashcards from
 the vocabulary in them. The app also recommends articles seeded from words you know.
+
+Text is matched against **every recorded form** of a lexeme, not just the dictionary form —
+a Malayalam article writes വിരുന്നുകാരന്റെ where the lemma is വിരുന്നുകാരൻ. Lemma-only
+matching found almost nothing in inflected languages.
 
 *Uses:* the Wikipedia **Action API** — `list=search`, `prop=extracts`, `prop=langlinks`,
 and `list=querypage&qppage=WithoutInterwiki`.
@@ -164,7 +202,26 @@ that already carry P5185: mostly gendered → "add the missing ones"; barely gen
 *Lands on:* Wikidata lexeme pages (`https://www.wikidata.org/wiki/Lexeme:L…`) and the
 [Wikidata Query Service](https://query.wikidata.org).
 
-## B. Record a pronunciation
+## B. Fix a word's origin without leaving the app
+
+Every word in the app is a **hyperlink to its Wikidata lexeme**, marked with the
+Wikidata logo — click it and you are on the page where the fix is made.
+
+Better: any word showing **"Same meaning"** but no recorded origin offers **Add a word
+origin** inline. Give the ancestor's lexeme id, and WikiLinkua writes
+**P5191 `derived from lexeme`** to Wikidata under your own account. Each new P5191
+statement can turn a bare "same meaning" pair into a cognate the app can teach — the
+single highest-leverage edit a user can make here.
+
+It asks for the **ancestor**, not for "these two are cognates", on purpose: cognates
+usually descend from a shared older word rather than from each other (English *night* and
+German *Nacht* are cognates, but neither derives from the other). A one-click
+"link these two" button would mass-produce false statements.
+
+*Lands on:* the lexeme's Wikidata page, via `wbcreateclaim`. Needs the `editpage` grant
+only — not the upload grant.
+
+## C. Record a pronunciation
 
 Record a word at `/contribute/record`, listen back, and publish it to **Wikimedia Commons**
 under CC BY-SA 4.0 with your own Wikimedia login. Reached from the "no audio" task, which
@@ -193,21 +250,21 @@ its name. This works with edit permission alone.
 *Browser note:* Safari records `audio/mp4`, which Commons rejects. The recorder requests
 ogg/opus or webm/opus and tells you to switch browsers if neither is available.
 
-## C. Create a missing Wikipedia article
+## D. Create a missing Wikipedia article
 
 In Article mode, any article that does not yet exist in your language shows a direct
 **Content Translation** link, pre-filled with the source article and language pair.
 
 *Lands on:* `Special:ContentTranslation` on your language's Wikipedia.
 
-## D. Add or fix video subtitles
+## E. Add or fix video subtitles
 
 Video mode shows which Commons videos have subtitles in which languages — the ones with
 none are the gap. Subtitles live as ordinary wiki pages you can create and edit.
 
 *Lands on:* `TimedText:` pages on Wikimedia Commons.
 
-## E. Report problems
+## F. Report problems
 
 Bugs and data oddities: [GitHub issues](https://github.com/rohan2023101003/wikilinkua/issues).
 
@@ -311,8 +368,10 @@ toolforge build start https://github.com/rohan2023101003/wikilinkua.git
 toolforge webservice buildservice start
 ```
 
-See [`PROJECT_SETUP.md`](PROJECT_SETUP.md) for the full runbook and
-[`docs/developer-guide.md`](docs/developer-guide.md) for architecture.
+See [`PROJECT_SETUP.md`](PROJECT_SETUP.md) for the full runbook,
+[`docs/developer-guide.md`](docs/developer-guide.md) for architecture, and
+[`UI-GUIDE.md`](UI-GUIDE.md) for interface conventions (navigation, design tokens,
+right-to-left text, and the rules for displaying numbers).
 
 ---
 
@@ -321,11 +380,11 @@ See [`PROJECT_SETUP.md`](PROJECT_SETUP.md) for the full runbook and
 - **Coverage is the binding constraint.** Most languages have few lexemes, and most
   lexemes lack derivation, audio and examples. The app states this plainly instead of
   faking richness — and the Contribute tab turns each gap into a task.
-- **Text matching uses dictionary forms.** Article and Video flashcards match words in
-  running text against lemmas, so in inflected languages most words will not match. Fixing
-  this needs lexeme *forms*; it is the top item on the roadmap.
-- **No frequency ordering.** Vocabulary is not sequenced easy→hard, so this is not yet a
-  curriculum.
+- **Course ordering is a proxy, not a frequency list.** "How many languages have a word for
+  this concept" correlates well with basic vocabulary but is not corpus frequency; a real
+  frequency list per language would be better where one exists.
+- **Form coverage varies.** Form-aware matching only helps where lexemes actually have forms
+  recorded — the Contribute tab surfaces that gap.
 - **P5972/P5973/P5974 are not fetched.** Every query shape tried took 43–110s or failed on
   WDQS. `same_meaning` already carries the meaning claim.
 - **Uploading new files needs the `createeditmovepage` grant** (for `createpage`), which is

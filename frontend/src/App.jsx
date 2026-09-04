@@ -9,6 +9,7 @@ import PhrasesMode from './components/PhrasesMode';
 import VideoMode from './components/VideoMode';
 import ArticleMode from './components/ArticleMode';
 import ContributeMode from './components/ContributeMode';
+import LearnPath from './components/LearnPath';
 
 // Import new game modes
 import { Recall } from './components/Recall';
@@ -16,10 +17,12 @@ import { ReverseRecall } from './components/ReverseRecall';
 import { OddOneOut } from './components/OddOneOut';
 import { MatchPairs } from './components/MatchPairs';
 
+import { color } from './theme';
 import { loadAndNormalizeWords } from './utils/sparql';
 import { updateLeitnerProgress } from './utils/srs';
 import {
   getActiveProfile, setActiveProfile, getDeck, saveWordProgress, profileKey,
+  getActivity, recordActivity,
 } from './utils/storage';
 
 /**
@@ -29,21 +32,46 @@ import {
  * /contribute/record is deliberately NOT here: that is a server-rendered page
  * (the audio recorder), reached from inside the Contribute section.
  */
+const VIEW_BY_PATH = {
+  '/': 'game-modes',
+  '/app': 'game-modes',
+  '/practice': 'game-modes',
+  '/learn': 'learn',
+  '/words': 'bridge-words',
+  '/wikilinkua': 'bridge-words',
+  '/phrases': 'phrases',
+  '/progress': 'words-status',
+  '/video': 'video',
+  '/article': 'article',
+  '/contribute': 'contribute',
+  '/profile': 'onboarding',
+  '/false-friends': 'friend-or-faux',
+};
+
+/** The view a URL asks for. Exact match - substring tests collided ('/progress'
+ *  vs '/practice') and would have swallowed '/contribute/record', which is a
+ *  server-rendered page and must never be handled here. */
 function viewFromPath() {
-  const path = (typeof window !== 'undefined' && window.location.pathname) || '/';
-  if (path.includes('/false-friends')) return 'friend-or-faux';
-  if (path.includes('/wikilinkua')) return 'bridge-words';
-  if (path.includes('/contribute')) return 'contribute';
-  return 'game-modes';
+  const raw = (typeof window !== 'undefined' && window.location.pathname) || '/';
+  const clean = raw.replace(/\/+$/, '') || '/';
+  return VIEW_BY_PATH[clean] || 'game-modes';
 }
+
+/** The URL for a view, so navigating in-app keeps the address bar honest. */
+const PATH_BY_VIEW = Object.entries(VIEW_BY_PATH).reduce((acc, [path, view]) => {
+  if (!acc[view]) acc[view] = path;
+  return acc;
+}, {});
 
 export default function App() {
   const [profile, setProfile] = useState(null);
   const [progress, setProgress] = useState({ words: {} });
   const [account, setAccount] = useState(null);
+  const [activity, setActivity] = useState(null);
   const [words, setWords] = useState([]);
   const [totalTargetMapped, setTotalTargetMapped] = useState(0);
   const [coverage, setCoverage] = useState(null);   // exact counts, not derived from the capped list
+  const [formIndex, setFormIndex] = useState(null); // surface form -> lexemeId
   const [initialWordsFilter, setInitialWordsFilter] = useState('All');
   
   const [loading, setLoading] = useState(false);
@@ -58,10 +86,19 @@ export default function App() {
     if (stored) {
       setProfile(stored);
       setProgress({ words: getDeck(stored).words || {} });
+      setActivity(getActivity(stored));
       setView(viewFromPath());
     } else {
       setView('onboarding');
     }
+  }, []);
+
+  // 1a. Back/Forward must move between views, not leave the SPA showing the
+  //     wrong screen for the URL.
+  useEffect(() => {
+    const onPop = () => setView(viewFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   // 1b. Who is logged in (drives the Login / Log out control in the nav)
@@ -86,6 +123,7 @@ export default function App() {
       setWords([]);
       setTotalTargetMapped(0);
       setCoverage(null);
+      setFormIndex(null);
       try {
         const result = await loadAndNormalizeWords(profile.knownLangs, profile.targetLang);
         if (isCurrent) {
@@ -96,6 +134,7 @@ export default function App() {
             truncated: result.truncated,
             loadedLexemes: result.loadedLexemes,
           });
+          setFormIndex(new Map(result.formIndex || []));
         }
       } catch (err) {
         console.error("Error loading words from WDQS:", err);
@@ -123,6 +162,7 @@ export default function App() {
     const samePair = profileKey(newProfile) === profileKey(profile);
     const deck = setActiveProfile(newProfile);
     setProgress({ words: deck.words || {} });
+    setActivity(getActivity(newProfile));
     setProfile(samePair ? profile : newProfile);
     setView('game-modes');
   };
@@ -139,6 +179,7 @@ export default function App() {
       saveWordProgress(profile, updated.words);
       return updated;
     });
+    setActivity(recordActivity(profile));
   };
 
   // /logout is POST-only (it changes state), so submit a real form.
@@ -152,6 +193,12 @@ export default function App() {
 
   const handleNavigate = (newView, opt = {}) => {
     setView(newView);
+    // Keep the address bar in step so links are shareable and Back works.
+    const path = PATH_BY_VIEW[newView];
+    if (path && typeof window !== 'undefined' && window.history
+        && window.location.pathname.replace(/\/+$/, '') !== path) {
+      window.history.pushState({ view: newView }, '', path);
+    }
     if (opt && opt.filter) {
       setInitialWordsFilter(opt.filter);
     } else {
@@ -162,15 +209,20 @@ export default function App() {
   // Render navigation links (no emojis)
   const renderNav = () => {
     if (!profile) return null;
-    const navItems = [
-      { id: 'game-modes', label: 'Home' },
-      { id: 'bridge-words', label: 'Words' },
-      { id: 'phrases', label: 'Phrases' },
-      { id: 'words-status', label: 'Progress' },
-      { id: 'video', label: 'Video' },
-      { id: 'article', label: 'Article' },
-      { id: 'contribute', label: 'Contribute' },
-      { id: 'onboarding', label: 'Profile' }
+    // Grouped by what the learner is trying to do, with a divider between
+    // groups: practise -> explore source material -> give back -> your account.
+    // Nine flat peers gave no clue that Contribute is a different kind of
+    // activity from Video, or that Words and Phrases are both input sources.
+    const navGroups = [
+      [ { id: 'game-modes', label: 'Home' },
+        { id: 'learn', label: 'Learn' } ],
+      [ { id: 'bridge-words', label: 'Words' },
+        { id: 'phrases', label: 'Phrases' },
+        { id: 'video', label: 'Video' },
+        { id: 'article', label: 'Article' } ],
+      [ { id: 'contribute', label: 'Contribute' } ],
+      [ { id: 'words-status', label: 'Progress' },
+        { id: 'onboarding', label: 'Profile' } ],
     ];
 
     const externalLinks = [
@@ -181,7 +233,7 @@ export default function App() {
 
     const linkStyle = {
       fontWeight: '500',
-      color: '#54595d',
+      color: color.subtle,
       borderBottom: '3px solid transparent',
       borderRadius: '0',
       padding: '8px 12px',
@@ -196,9 +248,9 @@ export default function App() {
     return (
       <nav
         style={{
-          borderBottom: '1px solid #c8ccd1',
+          borderBottom: `1px solid ${color.borderSubtle}`,
           marginBottom: '28px',
-          background: '#ffffff',
+          background: color.bg,
           position: 'sticky',
           top: 0,
           zIndex: 100
@@ -213,12 +265,15 @@ export default function App() {
             padding: '12px 24px',
             alignItems: 'center'
           }}
+          className="wl-nav-inner"
         >
-          <div style={{ fontWeight: '800', fontSize: '1.35rem', color: '#202122', marginRight: 'auto', display: 'flex', alignItems: 'center', letterSpacing: '-0.02em' }}>
-            Wiki<span style={{ color: '#3366cc' }}>Linkua</span>
+          <div style={{ fontWeight: '800', fontSize: '1.35rem', color: color.base, marginRight: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', letterSpacing: '-0.02em' }}>
+            Wiki<span style={{ color: color.progressive }}>Linkua</span>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {navItems.map(item => {
+          <div className="wl-nav-scroll">
+            {navGroups.flatMap((group, gi) => [
+              ...(gi > 0 ? [<span key={'sep' + gi} style={{ width: '1px', height: '18px', background: '#c8ccd1', margin: '0 6px', flexShrink: 0 }} />] : []),
+              ...group.map(item => {
               const isHomeActive = item.id === 'game-modes' && activeGameViews.includes(view);
               const isActive = view === item.id || isHomeActive;
 
@@ -229,8 +284,8 @@ export default function App() {
                   className="cdx-button"
                   style={{
                     fontWeight: isActive ? '700' : '500',
-                    color: isActive ? '#3366cc' : '#54595d',
-                    borderBottom: isActive ? '3px solid #3366cc' : '3px solid transparent',
+                    color: isActive ? color.progressive : color.subtle,
+                    borderBottom: isActive ? `3px solid ${color.progressive}` : '3px solid transparent',
                     borderRadius: '0',
                     padding: '8px 12px',
                     fontSize: '0.95rem',
@@ -242,8 +297,8 @@ export default function App() {
                   {item.label}
                 </button>
               );
-            })}
-            <span style={{ width: '1px', height: '20px', background: '#c8ccd1', margin: '0 4px' }} />
+            })])}
+            <span style={{ width: '1px', height: '18px', background: '#c8ccd1', margin: '0 6px', flexShrink: 0 }} />
             {externalLinks.map(link => (
               <a key={link.href} href={link.href} style={linkStyle}>
                 {link.label}
@@ -324,6 +379,7 @@ export default function App() {
             words={words} 
             totalTargetMapped={totalTargetMapped}
             coverage={coverage}
+            account={account}
             profile={profile} 
             progress={progress}
             initialFilter={initialWordsFilter}
@@ -399,6 +455,18 @@ export default function App() {
           <VideoMode
             profile={profile}
             words={words}
+            formIndex={formIndex}
+            onAnswerWord={handleAnswerWord}
+            onNavigate={handleNavigate}
+          />
+        );
+      case 'learn':
+        return (
+          <LearnPath
+            words={words}
+            progress={progress}
+            profile={profile}
+            activity={activity}
             onAnswerWord={handleAnswerWord}
             onNavigate={handleNavigate}
           />
@@ -415,6 +483,7 @@ export default function App() {
           <ArticleMode
             profile={profile}
             words={words}
+            formIndex={formIndex}
             progress={progress}
             onAnswerWord={handleAnswerWord}
             onNavigate={handleNavigate}

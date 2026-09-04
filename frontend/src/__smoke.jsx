@@ -19,6 +19,8 @@ import PhrasesMode from './components/PhrasesMode';
 import VideoMode from './components/VideoMode';
 import ArticleMode from './components/ArticleMode';
 import ContributeMode from './components/ContributeMode';
+import LearnPath from './components/LearnPath';
+import { ListeningExercise, SentenceExercise } from './components/UnitExercises';
 import { Recall } from './components/Recall';
 import { ReverseRecall } from './components/ReverseRecall';
 import { OddOneOut } from './components/OddOneOut';
@@ -47,6 +49,7 @@ const mkWord = (i, extra = {}) => ({
   targetIpa: 'wa:k',
   ipaSimilarity: null,
   isBridge: true,
+  commonness: 20 - (i % 15),
   ...extra,
 });
 
@@ -65,7 +68,7 @@ const words = [
     primaryRelationType: REL.BORROWED_FROM,
   }),
   mkWord(22, { falseFriend: true, relations: [{ type: REL.FALSE_FRIEND, knownLemma: 'embarazada' }], primaryRelationType: REL.FALSE_FRIEND }),
-  mkWord(23, { relations: [{ type: REL.LOOKS_ALIKE, knownLemma: 'bus', similarity: 0.9 }], primaryRelationType: REL.LOOKS_ALIKE, phoneticMatch: true }),
+  mkWord(23, { relations: [{ type: REL.RELATED_MEANING, knownLemma: 'bus' }], primaryRelationType: REL.RELATED_MEANING, phoneticMatch: true }),
   mkWord(24, { gloss: '', relations: [] }),
   mkWord(25, { lemma: 'agent chargé de protection et sauvegarde du patrimoine naturel' }),
   mkWord(26, { gloss: 'yes' }),
@@ -102,6 +105,11 @@ const cases = [
   ['ArticleMode', <ArticleMode profile={profile} words={words} progress={progress} onAnswerWord={noop} onNavigate={noop} />],
   ['ContributeMode', <ContributeMode profile={profile} onNavigate={noop} />],
   ['ContributeMode (no profile)', <ContributeMode profile={null} onNavigate={noop} />],
+  ['LearnPath (fresh)', <LearnPath words={words} progress={{ words: {} }} profile={profile} activity={{ streak: 0, answeredToday: 0, goal: 10 }} onAnswerWord={noop} onNavigate={noop} />],
+  ['LearnPath (in progress)', <LearnPath words={words} progress={progress} profile={profile} activity={{ streak: 3, answeredToday: 6, goal: 10 }} onAnswerWord={noop} onNavigate={noop} />],
+  ['ListeningExercise', <ListeningExercise word={{ ...words[0], audioUrl: 'https://example.org/a.ogg' }} words={words} onAnswer={noop} />],
+  ['SentenceExercise (loading)', <SentenceExercise unitWords={words.slice(0, 4)} profile={profile} onAnswer={noop} />],
+  ['LearnPath (no course data)', <LearnPath words={[]} progress={{ words: {} }} profile={profile} activity={null} onAnswerWord={noop} onNavigate={noop} />],
 ];
 
 let failed = 0;

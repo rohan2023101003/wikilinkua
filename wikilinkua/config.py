@@ -1,4 +1,4 @@
-﻿"""Configuration.
+"""Configuration.
 
 The only place environment-specific values live. Everything that depends on
 deployment/access is read from an environment variable so it can be changed
@@ -31,7 +31,7 @@ class Config:
     OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "")
     OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", "")
     OAUTH_CALLBACK_URL = os.environ.get(
-        "OAUTH_CALLBACK_URL", "http://localhost:5000/oauth-callback"
+        "OAUTH_CALLBACK_URL", "https://wikilinkua.toolforge.org/oauth-callback"
     )
 
     # Scopes requested at authorization time. MediaWiki issues a token carrying

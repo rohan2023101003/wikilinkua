@@ -1,4 +1,4 @@
-﻿"""WikiLinkua web application.
+"""WikiLinkua web application.
 
 A standalone language-learning tool built on Wikidata Lexemes. This package is
 independent of Ordia: it ships its own templates, styles and routes.
@@ -40,6 +40,7 @@ def create_app():
         "main.guide",
         "main.docs_index",
         "main.privacy",
+        "main.sparql_proxy",
         "static",
     }
 

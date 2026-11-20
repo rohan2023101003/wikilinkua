@@ -1,4 +1,4 @@
-﻿"""Authentication.
+"""Authentication.
 
 Two modes, switched by the DEV_LOGIN config flag:
 
@@ -60,6 +60,10 @@ def login_start():
         flash("Logged in as a development test user.")
         return redirect(url_for("main.index"))
 
+    if not current_app.config.get("OAUTH_CLIENT_ID"):
+        flash("Wikimedia OAuth is not configured yet (OAUTH_CLIENT_ID missing).")
+        return redirect(url_for("auth.login_page"))
+
     # Real Wikimedia OAuth 2.0 - authorization code flow.
     state = secrets.token_urlsafe(24)
     session["oauth_state"] = state
@@ -92,25 +96,31 @@ def callback():
         flash("Login was cancelled.")
         return redirect(url_for("auth.login_page"))
 
-    token_resp = requests.post(
-        current_app.config["OAUTH_TOKEN_URL"],
-        data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "client_id": current_app.config["OAUTH_CLIENT_ID"],
-            "client_secret": current_app.config["OAUTH_CLIENT_SECRET"],
-            "redirect_uri": current_app.config["OAUTH_CALLBACK_URL"],
-        },
-        timeout=15,
-    )
-    token_resp.raise_for_status()
-    access_token = token_resp.json()["access_token"]
+    headers = {"User-Agent": "WikiLinkua/1.0 (https://wikilinkua.toolforge.org)"}
+    try:
+        token_resp = requests.post(
+            current_app.config["OAUTH_TOKEN_URL"],
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "client_id": current_app.config["OAUTH_CLIENT_ID"],
+                "client_secret": current_app.config["OAUTH_CLIENT_SECRET"],
+                "redirect_uri": current_app.config["OAUTH_CALLBACK_URL"],
+            },
+            headers=headers,
+            timeout=15,
+        )
+        token_resp.raise_for_status()
+        access_token = token_resp.json()["access_token"]
 
-    profile = requests.get(
-        current_app.config["OAUTH_PROFILE_URL"],
-        headers={"Authorization": "Bearer " + access_token},
-        timeout=15,
-    ).json()
+        profile = requests.get(
+            current_app.config["OAUTH_PROFILE_URL"],
+            headers={**headers, "Authorization": "Bearer " + access_token},
+            timeout=15,
+        ).json()
+    except Exception as exc:  # noqa: BLE001
+        flash(f"Wikimedia login failed: {exc}")
+        return redirect(url_for("auth.login_page"))
 
     session["user"] = {
         "id": str(profile.get("sub", "")),

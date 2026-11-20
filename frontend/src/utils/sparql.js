@@ -1,7 +1,7 @@
 import { FF_CURATED } from './curatedPairs';
 import { REL, buildRelations, primaryRelation } from './relations';
 
-export const SPARQL_ENDPOINT_URL = "https://query.wikidata.org/sparql";
+export const SPARQL_ENDPOINT_URL = "/api/sparql";
 
 import { ALL_LANGUAGES } from './languageData';
 
@@ -112,12 +112,16 @@ export function getIpaSimilarity(a, b) {
 const SPARQL_TIMEOUT_MS = 45000;
 
 export async function runSparqlQuery(sparql, timeoutMs = SPARQL_TIMEOUT_MS) {
-  const url = SPARQL_ENDPOINT_URL + '?query=' + encodeURIComponent(sparql);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+    const response = await fetch(SPARQL_ENDPOINT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/sparql-results+json',
+      },
+      body: 'query=' + encodeURIComponent(sparql),
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -132,6 +136,26 @@ export async function runSparqlQuery(sparql, timeoutMs = SPARQL_TIMEOUT_MS) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Run asynchronous factory functions with bounded concurrency to respect WDQS rate limits. */
+async function runWithConcurrency(tasks, limit = 2) {
+  const results = new Array(tasks.length);
+  let currentIndex = 0;
+
+  async function worker() {
+    while (currentIndex < tasks.length) {
+      const idx = currentIndex++;
+      results[idx] = await tasks[idx]();
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(limit, tasks.length) },
+    () => worker()
+  );
+  await Promise.all(workers);
+  return results;
 }
 
 const bindings = (data) => (data && data.results && data.results.bindings) || [];
@@ -561,24 +585,29 @@ export async function loadAndNormalizeWords(knownLangQids, targetLangQidRaw) {
     return { results: { bindings: [] } };
   };
 
-  const [totalTargetMapped, bridgeCount, rawBridges, rawForms, commonness,
-         rawTargetDeriv, ...rawKnownDeriv] = await Promise.all([
-    fetchTotalTargetMapped(targetLangQid),
-    fetchBridgeCount(knownLangs, targetLangQid).catch(e => {
+  const tasks = [
+    () => fetchTotalTargetMapped(targetLangQid).catch(e => {
+      console.warn('WikiLinkua: total mapped count unavailable -', e.message);
+      return 0;
+    }),
+    () => fetchBridgeCount(knownLangs, targetLangQid).catch(e => {
       console.warn('WikiLinkua: exact bridge count unavailable -', e.message);
       return null;    // the UI hides the percentage rather than showing a wrong one
     }),
-    fetchBridgeWordsRaw(knownLangs, targetLangQid),
-    fetchLexemeForms(targetLangQid).catch(softFail('lexeme forms')),
-    fetchConceptCommonness(targetLangQid).catch(e => {
+    () => fetchBridgeWordsRaw(knownLangs, targetLangQid),
+    () => fetchLexemeForms(targetLangQid).catch(softFail('lexeme forms')),
+    () => fetchConceptCommonness(targetLangQid).catch(e => {
       console.warn('WikiLinkua: concept commonness unavailable -', e.message);
       return new Map();   // curriculum falls back to relationship ordering
     }),
-    fetchDerivationEdges(targetLangQid).catch(softFail('target derivation data')),
+    () => fetchDerivationEdges(targetLangQid).catch(softFail('target derivation data')),
     ...knownLangs.map(l =>
-      fetchDerivationEdges(l.qid).catch(softFail(l.name + ' derivation data'))
+      () => fetchDerivationEdges(l.qid).catch(softFail(l.name + ' derivation data'))
     ),
-  ]);
+  ];
+
+  const [totalTargetMapped, bridgeCount, rawBridges, rawForms, commonness,
+         rawTargetDeriv, ...rawKnownDeriv] = await runWithConcurrency(tasks, 2);
 
   // Ancestry per side. Each known language is merged into one map - the lexeme
   // ids are globally unique, so there is nothing to disambiguate.
